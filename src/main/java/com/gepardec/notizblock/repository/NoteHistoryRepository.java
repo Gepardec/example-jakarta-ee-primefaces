@@ -4,8 +4,8 @@ import com.gepardec.notizblock.entity.Note;
 import com.gepardec.notizblock.entity.NoteHistory;
 import com.gepardec.notizblock.entity.ChangeType;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
 import jakarta.transaction.Transactional;
 import java.util.List;
 
@@ -15,8 +15,8 @@ import java.util.List;
 @ApplicationScoped
 public class NoteHistoryRepository {
 
-    @PersistenceContext(unitName = "NotizblockPU")
-    private EntityManager entityManager;
+    @Inject
+    EntityManager entityManager;
 
     /**
      * Erstellt einen neuen History-Eintrag
