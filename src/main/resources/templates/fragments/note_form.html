@@ -1,0 +1,16 @@
+<h2 id="new-note">{#if form != null}Notiz bearbeiten{#else}Neue Notiz erstellen{/if}</h2>
+
+<form method="post" action="/notes/save">
+    <div style="margin-bottom:10px;">
+        <label for="title" style="font-weight:bold;">Titel:</label><br>
+        <input id="title" name="title" value="{form.title}" maxlength="255" required style="width:100%;">
+    </div>
+
+    <div style="margin-bottom:10px;">
+        <label for="content" style="font-weight:bold;">Inhalt:</label><br>
+        <textarea id="content" name="content" rows="10" maxlength="5000" required style="width:100%;">{form.content}</textarea>
+    </div>
+
+    <button type="submit">Speichern</button>
+    <a href="/" style="margin-left: 10px;">Abbrechen</a>
+</form>

@@ -1,0 +1,36 @@
+<table border="1" cellpadding="8" cellspacing="0" style="width:100%; border-collapse:collapse; margin-top: 20px;">
+    <thead>
+    <tr>
+        <th>Titel</th>
+        <th>Inhalt</th>
+        <th>Erstellt am</th>
+        <th>Aktionen</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    {#if notes == null || notes.isEmpty}
+        <tr>
+            <td colspan="4">Keine Notizen vorhanden</td>
+        </tr>
+    {#else}
+        {#for note in notes}
+            <tr>
+                <td style="font-weight:bold;">{note.title}</td>
+                <td style="width:35%">{note.truncatedContent ?: note.content}</td>
+                <td style="width:12%">{note.createdAt}</td>
+                <td style="width:200px; text-align:center;">
+                    <a href="/notes/{note.id}" title="Details anzeigen">Details</a>
+                    <span style="margin: 0 6px;">|</span>
+                    <a href="/notes/{note.id}/edit" title="Bearbeiten">Bearbeiten</a>
+                    <span style="margin: 0 6px;">|</span>
+
+                    <form method="post" action="/notes/{note.id}/delete" style="display:inline">
+                        <button type="submit" title="Löschen">Löschen</button>
+                    </form>
+                </td>
+            </tr>
+        {/for}
+    {/if}
+    </tbody>
+</table>

@@ -139,4 +139,8 @@ public class Note {
                 ", createdAt=" + createdAt +
                 '}';
     }
+    @jakarta.persistence.Transient
+    public String getTruncatedContent() {
+        return getTruncatedContent(100);
+    }
 }

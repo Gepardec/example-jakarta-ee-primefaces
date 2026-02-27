@@ -1,0 +1,18 @@
+{#include layout}
+    {#title}Notiz löschen{/title}
+    {#pageTitle}Notiz löschen{/pageTitle}
+
+    {#content}
+        <h2>Notiz löschen</h2>
+
+        <p>
+            Möchten Sie die Notiz <strong>{note.title}</strong> wirklich löschen?
+        </p>
+
+        <form method="post" action="/notes/{note.id}/delete" style="display:inline">
+            <button type="submit">Ja, löschen</button>
+        </form>
+
+        <a href="/" style="margin-left: 10px;">Abbrechen</a>
+    {/content}
+{/include}

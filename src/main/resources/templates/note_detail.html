@@ -1,0 +1,21 @@
+<!doctype html>
+<html>
+<body>
+<a href="/">← Zurück</a>
+
+<h1>{note.title}</h1>
+<pre>{note.content}</pre>
+
+<h2>Historie ({historyCount})</h2>
+{#if historyCount == 0}
+    <p>Keine Historie.</p>
+{#else}
+    <ul>
+        {#for h in history}
+            <li>{h}</li>
+        {/for}
+    </ul>
+{/if}
+
+</body>
+</html>

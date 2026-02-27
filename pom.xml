@@ -42,6 +42,10 @@
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-rest-qute</artifactId>
         </dependency>
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-qute</artifactId>
+        </dependency>
 
         <!-- Validation (hilfreich für Form DTOs) -->
         <dependency>
@@ -56,12 +60,11 @@
         </dependency>
 
         <!-- OPTIONAL: falls du JPA/Hibernate ORM nutzt -->
-        <!--
+
         <dependency>
           <groupId>io.quarkus</groupId>
           <artifactId>quarkus-hibernate-orm</artifactId>
         </dependency>
-        -->
 
         <!-- Tests -->
         <dependency>

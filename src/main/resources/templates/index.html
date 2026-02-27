@@ -1,0 +1,21 @@
+{#include layout}
+    {#title}Notizblock - Übersicht{/title}
+    {#pageTitle}Notizblock Verwaltung{/pageTitle}
+
+    {#content}
+        <div style="display:flex; justify-content: space-between; align-items:center;">
+            <div style="font-weight:bold;">Anzahl Notizen: {notesCount}</div>
+            <a href="#new-note">Neue Notiz</a>
+        </div>
+
+        {#if msg}
+            <div><strong>{level ?: 'info'}</strong>: {msg}</div>
+        {/if}
+
+            {#include fragments/note_table.html /}
+
+        <hr>
+
+            {#include fragments/note_form.html /}
+    {/content}
+{/include}

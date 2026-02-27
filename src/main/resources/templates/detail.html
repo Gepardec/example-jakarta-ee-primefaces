@@ -1,0 +1,87 @@
+{#include layout}
+    {#title}Notiz Details - {note.title}{/title}
+    {#pageTitle}Notiz Details{/pageTitle}
+
+    {#head}
+        <style>
+            .detail-label { width: 200px; padding: 10px; vertical-align: top; }
+            .detail-value { padding: 10px; }
+
+            .history-timeline { position: relative; padding: 20px 0; }
+            .timeline-item { position: relative; padding-left: 60px; padding-bottom: 30px; display: flex; align-items: flex-start; }
+            .timeline-item:not(:last-child)::before { content: ''; position: absolute; left: 20px; top: 40px; bottom: -10px; width: 2px; background: #e0e0e0; }
+            .timeline-marker { position: absolute; left: 0; top: 0; width: 40px; height: 40px; border-radius: 50%; background: white; border: 3px solid #e0e0e0; display: flex; align-items: center; justify-content: center; z-index: 1; }
+            .timeline-icon { font-size: 1.2rem; }
+            .timeline-content { flex: 1; margin-left: 10px; }
+            .timeline-title { font-weight: bold; font-size: 1.1em; display: block; margin-bottom: 5px; }
+            .timeline-date { color: #666; font-size: 0.9em; display: block; }
+        </style>
+    {/head}
+
+    {#content}
+
+        <p><a href="/">← Zurück zur Liste</a></p>
+
+        {#if msg}
+            <div style="margin: 10px 0; padding: 10px; border-radius: 6px; border: 1px solid #ddd;">
+                <strong>{level ?: 'info'}</strong>: {msg}
+            </div>
+        {/if}
+
+        <!-- Notiz-Informationen -->
+        <section style="margin-bottom:20px;">
+            <h2>Notiz-Informationen</h2>
+            <div style="font-weight:bold; margin-bottom:10px;">ID: {note.id}</div>
+
+            <table style="width:100%; border-collapse:collapse;">
+                <tr>
+                    <td class="detail-label"><strong>Titel:</strong></td>
+                    <td class="detail-value" style="font-size: 1.2em;">{note.title}</td>
+                </tr>
+                <tr>
+                    <td class="detail-label"><strong>Erstellt am:</strong></td>
+                    <td class="detail-value">{createdAt}</td>
+                </tr>
+                <tr>
+                    <td class="detail-label"><strong>Zuletzt geändert:</strong></td>
+                    <td class="detail-value">{updatedAt}</td>
+                </tr>
+                <tr>
+                    <td class="detail-label"><strong>Inhalt:</strong></td>
+                    <td class="detail-value">
+                        <div style="white-space: pre-wrap; padding: 10px; background-color: #f8f9fa; border-radius: 5px; border: 1px solid #dee2e6;">
+                            {note.content}
+                        </div>
+                    </td>
+                </tr>
+            </table>
+        </section>
+
+        <!-- Historie -->
+        <section>
+            <h2>Änderungshistorie ({historyCount} Einträge)</h2>
+
+            {#if historyCount == 0}
+                <p>Keine Historie vorhanden. Für diese Notiz sind noch keine Änderungen protokolliert.</p>
+            {#else}
+                <div class="history-timeline">
+                    {#for h in history}
+                        <div class="timeline-item">
+                            <div class="timeline-marker">
+                                <!-- Icon: du brauchst ein CSS/Icons System (z.B. FontAwesome). -->
+                                <span class="timeline-icon">{h.changeType.displayName}</span>
+                            </div>
+                            <div class="timeline-content">
+                                <div style="border:1px solid #ddd; border-radius: 10px; padding: 10px;">
+                                    <span class="timeline-title">{h.changeType.displayName}</span>
+                                    <span class="timeline-date">{h.changedAtFormatted ?: h.changedAt}</span>
+                                </div>
+                            </div>
+                        </div>
+                    {/for}
+                </div>
+            {/if}
+        </section>
+
+    {/content}
+{/include}
