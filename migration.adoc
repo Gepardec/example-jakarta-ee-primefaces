@@ -1,0 +1,787 @@
+= Migrationsanalyse: Jakarta EE + JSF/Primefaces zu Quarkus + REST + Angular
+:encoding: UTF-8
+:toc:
+:toclevels: 4
+:sectnums:
+:icons: font
+:source-highlighter: highlightjs
+
+== Zusammenfassung
+
+Dieses Dokument zeigt die Migrationsstrategie für das Notizblock-Projekt von einer Jakarta EE 10 + JSF/Primefaces Anwendung zu einer modernen Architektur mit Quarkus (REST API Backend) und Angular (SPA Frontend).
+
+**Zielsetzung:** Maximale Automatisierung bei minimaler LLM-Nutzung (nur für Angular-Komponenten-Migration).
+
+**Hauptergebnisse:**
+
+* ✅ *Backend-Migration (Jakarta EE zu Quarkus):* Hoher Automatisierungsgrad möglich (~70–80 %)
+* ⚠️  *Frontend-Migration (JSF/Primefaces zu Angular):* Mittlerer Automatisierungsgrad (~40–50 % mit LLM)
+
+== Status Quo Analyse
+
+=== Aktuelle Architektur
+
+[cols="1,2", options="header"]
+|===
+|Komponente|Details
+
+|*Backend Framework*
+|Jakarta EE 10 (WildFly-basiert)
+
+|*Frontend Framework*
+|JSF 4.0 + PrimeFaces 13.0.0
+
+|*Persistenz*
+|JPA/Hibernate mit H2-Datenbank
+
+|*Dependency Injection*
+|CDI (Contexts & Dependency Injection)
+
+|*Build-Tool*
+|Maven 3.8+
+
+|*Java-Version*
+|Java 17
+
+|*Deployment*
+|WAR-Datei auf WildFly Application Server
+
+|===
+
+=== Code-Statistiken
+
+[source]
+----
+📦 Entities:            2 Klassen (Note, NoteHistory)
+📦 Repositories:        2 Klassen (NoteRepository, NoteHistoryRepository)
+📦 Backing Beans:       2 Klassen (NoteBean, NoteDetailBean)
+📦 XHTML-Seiten:        2 Seiten (index.xhtml, detail.xhtml)
+📦 XHTML-Komponenten:   4 Komponenten (template, noteTable, 2 Dialoge)
+----
+
+== Zielarchitektur
+
+=== Zielzustand
+
+[cols="1,2", options="header"]
+|===
+|Komponente|Details
+
+|*Backend Framework*
+|Quarkus 3.x mit Jakarta EE 10 Support
+
+|*API-Schicht*
+|JAX-RS REST API (JSON)
+
+|*Frontend Framework*
+|Angular 21+ (SPA)
+
+|*UI-Komponenten*
+|Angular Material oder PrimeNG (Angular-Version von Primefaces)
+
+|*Persistenz*
+|Hibernate ORM with Panache (Quarkus-Extension)
+
+|*Build-Tools*
+|Maven (Backend) + Angular CLI (Frontend)
+
+|*Deployment*
+|Separate Deployments: Quarkus JAR + Angular Static Files
+
+|===
+
+=== Architektur-Diagramm
+
+[source]
+----
+┌─────────────────────────────────────────────────────────────┐
+│                    Angular SPA (Port 4200)                  │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐       │
+│  │ Note List    │  │ Note Detail  │  │ Note Form    │       │
+│  │ Component    │  │ Component    │  │ Component    │       │
+│  └──────────────┘  └──────────────┘  └──────────────┘       │
+│           │                  │                  │           │
+│           └──────────────────┴──────────────────┘           │
+│                         │ HTTP/JSON                         │
+└─────────────────────────┼───────────────────────────────────┘
+                          │
+                          ▼
+┌─────────────────────────────────────────────────────────────┐
+│             Quarkus REST API (Port 8080)                    │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │              JAX-RS Endpoints                        │   │
+│  │  /api/notes       (GET, POST)                        │   │
+│  │  /api/notes/{id}  (GET, PUT, DELETE)                 │   │
+│  │  /api/notes/{id}/history (GET)                       │   │
+│  └──────────────────────────────────────────────────────┘   │
+│                         │                                   │
+│  ┌──────────────────────┴────────────────────────┐          │
+│  │         Service Layer (Business Logic)        │          │
+│  └──────────────────────┬────────────────────────┘          │
+│                         │                                   │
+│  ┌──────────────────────┴────────────────────────┐          │
+│  │          Repositories (Data Access)           │          │
+│  └──────────────────────┬────────────────────────┘          │
+│                         │                                   │
+│  ┌──────────────────────┴────────────────────────┐          │
+│  │        JPA Entities (Note, NoteHistory)       │          │
+│  └───────────────────────────────────────────────┘          │
+└─────────────────────────┼───────────────────────────────────┘
+                          │
+                          ▼
+                   ┌──────────────┐
+                   │  PostgreSQL  │
+                   │  / H2 DB     │
+                   └──────────────┘
+----
+
+== Migrations-Tools und Automatisierung
+
+=== Backend-Migration: Jakarta EE zu Quarkus
+
+==== OpenRewrite
+
+[cols="1,3", options="header"]
+|===
+|Aspekt|Details
+
+|*Typ*
+|Open-Source AST-basiertes Code-Refactoring-Tool
+
+|*Automatisiert*
+a|
+* ✅ javax.* zu jakarta.* Package-Umbenennung
+* ✅ Import-Statements aktualisieren
+* ✅ Annotations aktualisieren
+* ✅ XML-Konfigurationen (persistence.xml, beans.xml)
+* ✅ Maven Dependencies aktualisieren
+* ✅ Jackson javax zu jakarta Migration
+
+|*Installation*
+a|
+*Maven:*
+[source,xml]
+----
+<plugin>
+    <groupId>org.openrewrite.maven</groupId>
+    <artifactId>rewrite-maven-plugin</artifactId>
+    <version>5.40.0</version>
+    <configuration>
+        <activeRecipes>
+            <recipe>org.openrewrite.java.migrate.jakarta.JavaxMigrationToJakarta</recipe>
+        </activeRecipes>
+    </configuration>
+    <dependencies>
+        <dependency>
+            <groupId>org.openrewrite.recipe</groupId>
+            <artifactId>rewrite-migrate-java</artifactId>
+            <version>2.26.1</version>
+        </dependency>
+    </dependencies>
+</plugin>
+----
+
+|*Verwendung*
+a|
+[source,bash]
+----
+# Trockenlauf (nur anzeigen)
+mvn rewrite:discover
+
+# Migration durchführen
+mvn rewrite:run
+
+# Ergebnis prüfen
+git diff
+----
+
+|*Vorteile*
+a|
+* ✅ Sehr hohe Genauigkeit (AST-basiert)
+* ✅ Kein manuelles Suchen & Ersetzen
+* ✅ Validiert Änderungen zur Build-Zeit
+* ✅ Unterstützt Multi-Modul-Projekte
+
+|*Einschränkungen*
+a|
+* ⚠️  Keine Business-Logik-Migration
+* ⚠️  Keine JSF zu REST API Konvertierung
+
+|===
+
+==== Manuelle Migrations-Schritte (Backend)
+
+Diese Schritte können NICHT automatisiert werden:
+
+[cols="2,1", options="header"]
+|===
+|Schritt|Beschreibung
+
+|*CDI zu CDI*
+|CDI bleibt gleich, nur Import-Statements ändern sich (automatisch)
+
+|*JPA Entities*
+|Entities bleiben fast identisch, Option: Panache verwenden für weniger Boilerplate
+
+|*Repositories zu Panache*
+|Konvertierung von `@PersistenceContext` zu Panache Repositories
+
+|*JSF Beans zu JAX-RS Endpoints*
+|Backing Beans in REST Controllers umwandeln (größte manuelle Arbeit)
+
+|*DTOs erstellen*
+|Data Transfer Objects für API-Kommunikation
+
+|*Error Handling*
+|Exception Mapper für REST API
+
+|===
+
+=== Frontend-Migration: JSF/Primefaces zu Angular
+
+==== Manuelle Migration mit LLM-Unterstützung
+
+*Strategie:* Komponenten-basierte Migration mit Angular LLM (Claude/GitHub Copilot)
+
+[cols="1,2,1", options="header"]
+|===
+|Schritt|Beschreibung|Automatisierungsgrad
+
+|*1. Projektstruktur*
+|Angular CLI Projekt erstellen
+|100% (ng new)
+
+|*2. Routing*
+|JSF Navigation zu Angular Routes mapping
+|40% (LLM)
+
+|*3. Component Mapping*
+a|
+* index.xhtml zu NoteListComponent
+* detail.xhtml zu NoteDetailComponent
+* noteFormDialog.xhtml zu NoteFormDialogComponent
+|50% (LLM generiert Grundstruktur)
+
+|*4. UI Components*
+|PrimeFaces zu PrimeNG Migration (p:dataTable zu p-table, etc.)
+|70% (Mapping-Tabelle + LLM)
+
+|*5. Services*
+|JSF Backing Beans zu Angular Services
+|60% (LLM extrahiert Business Logic)
+
+|*6. HTTP Client*
+|REST API Kommunikation implementieren
+|80% (OpenAPI Generator)
+
+|*7. State Management*
+|ViewScoped Beans zu Angular Signals/NgRx
+|40 % (Design-Entscheidung nötig)
+
+|*8. Forms & Validation*
+|JSF Validators zu Angular Reactive Forms
+|50% (LLM hilft bei Konvertierung)
+
+|*9. Styling*
+|PrimeFaces Theme zu PrimeNG Theme
+|90% (Theme-Konfiguration)
+
+|===
+
+==== PrimeFaces zu PrimeNG Mapping
+
+*Vorteil:* PrimeNG ist die offizielle Angular-Version von PrimeFaces – hohe Kompatibilität
+
+[cols="1,1", options="header"]
+|===
+|PrimeFaces (JSF)|PrimeNG (Angular)
+
+|`<p:dataTable>`
+|`<p-table>`
+
+|`<p:dialog>`
+|`<p-dialog>`
+
+|`<p:commandButton>`
+|`<p-button>` + `(click)`
+
+|`<p:inputText>`
+|`<input pInputText>` + FormControl
+
+|`<p:growl>`
+|`<p-toast>` + MessageService
+
+|`<p:panelGrid>`
+|CSS Grid / Flexbox
+
+|`<ui:include>`
+|Angular Component
+
+|===
+
+==== OpenAPI Generator für HTTP Client
+
+[cols="1,3", options="header"]
+|===
+|Aspekt|Details
+
+|*Automatisiert*
+a|
+* TypeScript Angular Service-Klassen generieren
+* Model-Klassen aus REST API
+* HTTP Client Integration
+
+|*Voraussetzung*
+|OpenAPI/Swagger Spezifikation für Quarkus REST API
+
+|*Verwendung*
+a|
+[source,bash]
+----
+# OpenAPI Spec aus Quarkus generieren
+mvn quarkus:dev
+curl http://localhost:8080/q/openapi > openapi.json
+
+# Angular Client generieren
+npm install @openapitools/openapi-generator-cli -g
+openapi-generator-cli generate \
+    -i openapi.json \
+    -g typescript-angular \
+    -o src/app/api
+----
+
+|*Vorteile*
+a|
+* Type-Safe API Calls
+* Keine manuelle HTTP-Service Implementierung
+* Automatische Updates bei API-Änderungen
+
+|===
+
+== Migrationsstrategie
+
+=== Phase 1: Analyse & Setup
+
+[cols="1,2,1", options="header"]
+|===
+|Task|Beschreibung|Tool
+
+|1.1 Quarkus Projekt
+|Neues Quarkus-Projekt mit Maven erstellen
+|Quarkus CLI
+
+|1.2 Angular Projekt
+|Neues Angular-Projekt mit PrimeNG erstellen
+|Angular CLI
+
+|===
+
+*Deliverable:* Migrations-Report + leere Projekt-Skelette
+
+=== Phase 2: Backend Code-Migration
+
+[cols="1,2,1", options="header"]
+|===
+|Task|Beschreibung|Tool
+
+|2.1 Package Migration
+|javax zu jakarta mit OpenRewrite
+|OpenRewrite Maven Plugin
+
+|2.2 Entities kopieren
+|JPA Entities zu Quarkus Projekt kopieren (unverändert)
+|Manuell
+
+|===
+
+*Deliverable:* Funktionierende Persistenz-Schicht in Quarkus
+
+=== Phase 3: REST API Entwicklung
+
+[cols="1,2,1", options="header"]
+|===
+|Task|Beschreibung|Tool
+
+|3.1 DTOs erstellen
+|NoteDTO, NoteHistoryDTO Klassen
+|Manuell
+
+|3.2 REST Endpoints
+a|
+* `GET /api/notes`
+* `GET /api/notes/\{id}`
+* `POST /api/notes`
+* `PUT /api/notes/\{id}`
+* `DELETE /api/notes/\{id}`
+* `GET /api/notes/\{id}/history`
+|Manuell
+
+|3.3 Exception Handling
+|Exception Mapper für 404, 500, etc.
+|Manuell
+
+|3.4 OpenAPI Docs
+|Swagger UI mit `quarkus-smallrye-openapi`
+|Quarkus Extension
+
+|===
+
+*Deliverable:* Vollständige REST API
+
+=== Phase 4: Angular Projekt-Setup
+
+[cols="1,2,1", options="header"]
+|===
+|Task|Beschreibung|Tool
+
+|4.1 PrimeNG installieren
+|`ng add primeng` + Theme konfigurieren
+|Angular CLI
+
+|4.2 API Client generieren
+|TypeScript Services aus OpenAPI
+|OpenAPI Generator
+
+|4.3 Routing konfigurieren
+|/notes (Liste), /notes/:id (Detail)
+|Angular Router
+
+|4.4 Shared Module
+|Gemeinsame Components/Services
+|Manuell
+
+|4.5 HTTP Interceptor
+|Error Handling, Loading States
+|Manuell
+
+|===
+
+*Deliverable:* Angular-Grundstruktur mit API-Integration
+
+=== Phase 5: UI-Komponenten Migration
+
+[cols="2,2,2,1", options="header"]
+|===
+|Task|Quelle (JSF)|Ziel (Angular)|LLM-Support
+
+|5.1 Note List Component
+|index.xhtml
+|note-list.component.ts/html
+|Ja
+
+|5.2 Note Form Dialog
+|noteFormDialog.xhtml
+|note-form-dialog.component.ts/html
+|Ja
+
+|5.3 Note Detail Component
+|detail.xhtml
+|note-detail.component.ts/html
+|Ja
+
+|5.4 Delete Confirmation
+|deleteConfirmDialog.xhtml
+|p-confirmDialog Service
+|Teilweise
+
+|5.5 Layout Template
+|template.xhtml
+|app.component + Header/Footer Components
+|Ja
+
+|===
+
+*LLM-Prompt-Strategie:*
+
+Für jede Komponente:
+
+....
+Konvertiere diese JSF/PrimeFaces XHTML-Datei zu einer Angular-Komponente:
+
+Quell-Datei: [index.xhtml Inhalt einfügen]
+
+Anforderungen:
+- Verwende PrimeNG Komponenten (p-table, p-dialog, etc.)
+- Implementiere Reactive Forms für Formulare
+- Nutze den generierten API-Service für Backend-Calls
+- Fehlerbehandlung mit MessageService
+- TypeScript strict mode
+
+Erstelle:
+1. note-list.component.ts
+2. note-list.component.html
+3. note-list.component.scss
+....
+
+*Deliverable:* Vollständige UI mit allen Features
+
+=== Detaillierter Workflow
+
+==== Backend Migration Workflow
+
+[source,bash]
+----
+# SCHRITT 1: MTA Analyse
+wget https://github.com/windup/windup/releases/download/6.2.0.Final/mta-cli-6.2.0.Final-offline.zip
+unzip mta-cli-6.2.0.Final-offline.zip
+./mta-cli/bin/mta-cli \
+    --input target/notizblock.war \
+    --output migration-report \
+    --target quarkus
+
+# SCHRITT 2: Neues Quarkus-Projekt
+quarkus create app com.gepardec:notizblock-quarkus \
+    --extension='resteasy-reactive-jackson,hibernate-orm-panache,jdbc-h2,smallrye-openapi'
+cd notizblock-quarkus
+
+# SCHRITT 3: OpenRewrite für Package-Migration einrichten
+# pom.xml editieren: OpenRewrite Plugin hinzufügen (siehe Abschnitt 3.1.1)
+
+# SCHRITT 4: javax zu jakarta Migration durchführen
+cd ../notizblock  # Altes Projekt
+mvn rewrite:run
+git diff  # Änderungen prüfen
+
+# SCHRITT 5: Entities kopieren
+cp src/main/java/com/gepardec/notizblock/entity/*.java \
+   ../notizblock-quarkus/src/main/java/com/gepardec/notizblock/entity/
+
+# SCHRITT 6: Panache Entities erstellen
+# Note.java anpassen:
+# - extends PanacheEntity (entfernt @Id-Feld)
+# - public fields statt private + getter/setter
+
+# SCHRITT 7: REST Endpoints implementieren
+# NoteResource.java erstellen (siehe unten)
+
+# SCHRITT 8: Tests schreiben
+mvn quarkus:test
+
+# SCHRITT 9: OpenAPI generieren
+mvn quarkus:dev
+curl http://localhost:8080/q/openapi > openapi.json
+----
+
+*Beispiel REST Resource (NoteResource.java):*
+
+[source,java]
+----
+package com.gepardec.notizblock.resource;
+
+import com.gepardec.notizblock.entity.Note;
+import jakarta.transaction.Transactional;
+import jakarta.ws.rs.*;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
+import java.util.List;
+
+@Path("/api/notes")
+@Produces(MediaType.APPLICATION_JSON)
+@Consumes(MediaType.APPLICATION_JSON)
+public class NoteResource {
+
+    @GET
+    public List<Note> list() {
+        return Note.listAll();
+    }
+
+    @GET
+    @Path("/{id}")
+    public Response getById(@PathParam("id") Long id) {
+        Note note = Note.findById(id);
+        if (note == null) {
+            return Response.status(404).build();
+        }
+        return Response.ok(note).build();
+    }
+
+    @POST
+    @Transactional
+    public Response create(Note note) {
+        note.persist();
+        return Response.status(201).entity(note).build();
+    }
+
+    @PUT
+    @Path("/{id}")
+    @Transactional
+    public Response update(@PathParam("id") Long id, Note updatedNote) {
+        Note note = Note.findById(id);
+        if (note == null) {
+            return Response.status(404).build();
+        }
+        note.title = updatedNote.title;
+        note.content = updatedNote.content;
+        return Response.ok(note).build();
+    }
+
+    @DELETE
+    @Path("/{id}")
+    @Transactional
+    public Response delete(@PathParam("id") Long id) {
+        boolean deleted = Note.deleteById(id);
+        return deleted ? Response.noContent().build()
+                       : Response.status(404).build();
+    }
+
+    @GET
+    @Path("/{id}/history")
+    public Response getHistory(@PathParam("id") Long id) {
+        Note note = Note.findById(id);
+        if (note == null) {
+            return Response.status(404).build();
+        }
+        // History-Logik hier
+        return Response.ok(/* history list */).build();
+    }
+}
+----
+
+==== Frontend Migration Workflow
+
+[source,bash]
+----
+# SCHRITT 1: Angular Projekt erstellen
+ng new notizblock-angular --routing --style=scss
+cd notizblock-angular
+
+# SCHRITT 2: PrimeNG installieren
+npm install primeng primeicons
+
+# SCHRITT 3: OpenAPI Client generieren
+npm install @openapitools/openapi-generator-cli -g
+openapi-generator-cli generate \
+    -i ../notizblock-quarkus/openapi.json \
+    -g typescript-angular \
+    -o src/app/api
+
+# SCHRITT 4: Module konfigurieren (app.config.ts)
+# - HttpClientModule
+# - BrowserAnimationsModule
+# - PrimeNG Module importieren
+
+# SCHRITT 5: Komponenten generieren
+ng generate component components/note-list
+ng generate component components/note-detail
+ng generate component components/note-form-dialog
+
+# SCHRITT 6: Services generieren
+ng generate service services/note
+
+# SCHRITT 7: Routing konfigurieren (app.routes.ts)
+# - /notes zu NoteListComponent
+# - /notes/:id zu NoteDetailComponent
+
+# SCHRITT 8: LLM-gestützte Migration
+# Für jede Komponente: index.xhtml zu note-list.component.html
+# (Verwende Claude/Copilot mit Prompt aus Abschnitt 5)
+
+# SCHRITT 9: Testen
+ng serve
+ng test
+
+# SCHRITT 10: Production Build
+ng build --configuration production
+# Output in dist/ kann mit Nginx deployed werden
+----
+
+*Beispiel Angular Component (note-list.component.ts):*
+
+[source,typescript]
+----
+import { Component, OnInit } from '@angular/core';
+import { MessageService } from 'primeng/api';
+
+interface Note {
+  id?: number;
+  title?: string;
+  content?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+interface NoteService {
+  list(): any;
+  update(id: number, note: Note): any;
+  create(note: Note): any;
+  delete(id: number): any;
+}
+
+@Component({
+  selector: 'app-note-list',
+  templateUrl: './note-list.component.html',
+  styleUrls: ['./note-list.component.scss'],
+  providers: [MessageService]
+})
+export class NoteListComponent implements OnInit {
+  notes: Note[] = [];
+  displayDialog = false;
+  selectedNote?: Note;
+
+  constructor(
+    private noteService: NoteService,
+    private messageService: MessageService
+  ) {}
+
+  ngOnInit(): void {
+    this.loadNotes();
+  }
+
+  loadNotes(): void {
+    this.noteService.list().subscribe({
+      next: (data: Note[]) => this.notes = data,
+      error: () => this.messageService.add({
+        severity: 'error',
+        summary: 'Fehler',
+        detail: 'Notizen konnten nicht geladen werden'
+      })
+    });
+  }
+
+  showDialogToAdd(): void {
+    this.selectedNote = {};
+    this.displayDialog = true;
+  }
+
+  save(): void {
+    if (this.selectedNote?.id) {
+      this.noteService.update(this.selectedNote.id, this.selectedNote).subscribe({
+        next: () => {
+          this.messageService.add({
+            severity: 'success',
+            summary: 'Erfolg',
+            detail: 'Notiz aktualisiert'
+          });
+          this.loadNotes();
+          this.displayDialog = false;
+        }
+      });
+    } else {
+      this.noteService.create(this.selectedNote!).subscribe({
+        next: () => {
+          this.messageService.add({
+            severity: 'success',
+            summary: 'Erfolg',
+            detail: 'Notiz erstellt'
+          });
+          this.loadNotes();
+          this.displayDialog = false;
+        }
+      });
+    }
+  }
+
+  delete(id: number): void {
+    this.noteService.delete(id).subscribe({
+      next: () => {
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Erfolg',
+          detail: 'Notiz gelöscht'
+        });
+        this.loadNotes();
+      }
+    });
+  }
+}
+----
