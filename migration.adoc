@@ -227,7 +227,7 @@ Diese Schritte können NICHT automatisiert werden:
 |Konvertierung von `@PersistenceContext` zu Panache Repositories
 
 |*JSF Beans zu JAX-RS Endpoints*
-|Backing Beans in REST Controllers umwandeln (größte manuelle Arbeit)
+|Backing Beans in REST Controller umwandeln (größte manuelle Arbeit)
 
 |*DTOs erstellen*
 |Data Transfer Objects für API-Kommunikation
