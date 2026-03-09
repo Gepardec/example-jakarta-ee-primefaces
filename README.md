@@ -1,17 +1,16 @@
 # Notizblock Webanwendung
 
-Eine vollständige Jakarta EE Webanwendung für die Verwaltung von Notizen mit JSF und PrimeFaces, inklusive Detailansicht
+Eine vollständige Quarkus Webanwendung für die Verwaltung von Notizen mit JSF und PrimeFaces, inklusive Detailansicht
 und automatischer Änderungshistorie.
 
 ## Tech-Stack
 
-- **Jakarta EE 10** - Enterprise Java Platform
-- **JSF (JavaServer Faces)** - MVC Framework für die UI
-- **PrimeFaces 13** - UI-Komponentenbibliothek
-- **JPA (Jakarta Persistence API)** - ORM für Datenbankzugriffe
-- **CDI (Contexts and Dependency Injection)** - Dependency Injection
-- **H2 Database** - In-Memory Datenbank
-- **Hibernate** - JPA Implementation
+- **Quarkus 3.31** - Supersonic Subatomic Java Framework
+- **JSF (JavaServer Faces) via Apache MyFaces** - MVC Framework für die UI (wird von `quarkus-primefaces` unter der Haube mitgeliefert und ermöglicht den Einsatz von JSF in Quarkus)
+- **PrimeFaces (Quarkus Extension)** - Die `quarkus-primefaces` Extension ermöglicht darüber hinaus die Verwendung der PrimeFaces UI-Komponentenbibliothek mit Quarkus
+- **JPA (Jakarta Persistence API) / Hibernate ORM** - ORM für Datenbankzugriffe (via `quarkus-hibernate-orm`)
+- **CDI (Contexts and Dependency Injection)** - Dependency Injection (integriert in Quarkus)
+- **H2 Database** - In-Memory Datenbank (via `quarkus-jdbc-h2`)
 - **Maven** - Build Management
 
 ## Projektstruktur
@@ -32,23 +31,20 @@ notizblock/
 │   │   │       └── bean/
 │   │   │           ├── NoteBean.java          # JSF Backing Bean (Übersicht)
 │   │   │           └── NoteDetailBean.java    # JSF Backing Bean (Detail)
-│   │   ├── resources/
-│   │   │   └── META-INF/
-│   │   │       └── persistence.xml            # JPA Konfiguration
-│   │   └── webapp/
-│   │       ├── WEB-INF/
-│   │       │   ├── web.xml                    # Web Application Config
-│   │       │   ├── beans.xml                  # CDI Config
-│   │       │   └── notizblock-ds.xml          # DataSource Config
-│   │       ├── resources/
-│   │       │   └── components/
-│   │       │       ├── layout/
-│   │       │       │   └── template.xhtml     # Facelets Template
-│   │       │       ├── noteTable.xhtml        # DataTable Komponente
-│   │       │       ├── noteFormDialog.xhtml   # Erstellen/Bearbeiten Dialog
-│   │       │       └── deleteConfirmDialog.xhtml  # Lösch-Bestätigung
-│   │       ├── index.xhtml                    # Übersichtsseite
-│   │       └── detail.xhtml                   # Detailseite mit Historie
+│   │   └── resources/
+│   │       ├── META-INF/
+│   │       │   ├── web.xml                    # JSF Servlet Config
+│   │       │   └── resources/
+│   │       │       ├── resources/
+│   │       │       │   └── components/
+│   │       │       │       ├── layout/
+│   │       │       │       │   └── template.xhtml     # Facelets Template
+│   │       │       │       ├── noteTable.xhtml        # DataTable Komponente
+│   │       │       │       ├── noteFormDialog.xhtml   # Erstellen/Bearbeiten Dialog
+│   │       │       │       └── deleteConfirmDialog.xhtml  # Lösch-Bestätigung
+│   │       │       ├── index.xhtml            # Übersichtsseite
+│   │       │       └── detail.xhtml           # Detailseite mit Historie
+│   │       └── application.properties         # Quarkus Konfiguration
 └── pom.xml                                    # Maven Dependencies
 ```
 
@@ -126,13 +122,12 @@ Die Detailseite zeigt vollständige Informationen zu einer Notiz:
 - Einfachere Wartung
 - Konsistente UI
 
-## Installation & Deployment
+## Installation & Start
 
 ### Voraussetzungen
 
 - **Java 17** oder höher
 - **Maven 3.8+**
-- **WildFly 27+** oder ein anderer Jakarta EE 10 kompatiblen Application Server
 
 ### Build
 
@@ -144,103 +139,53 @@ cd notizblock
 mvn clean package
 ```
 
-Das erstellt eine `notizblock.war` Datei im `target/` Verzeichnis.
+### Entwicklungsmodus (Dev Mode)
 
-### Deployment auf WildFly
-
-#### Variante 1: Automatisches Deployment via Maven Plugin
+Quarkus bietet einen Entwicklungsmodus mit Live-Reload:
 
 ```bash
-# WildFly muss bereits laufen
-mvn wildfly:deploy
+mvn quarkus:dev
 ```
 
-#### Variante 2: Manuelles Deployment
+Dies startet die Anwendung mit:
 
-1. WildFly starten:
+- **Live-Reload** - Änderungen an Code und Ressourcen werden automatisch übernommen
+- **Dev UI** - Verfügbar unter `http://localhost:8080/notizblock/q/dev/`
+- **Detaillierte Fehlermeldungen**
+
+### Produktion
 
 ```bash
-cd $WILDFLY_HOME/bin
-./standalone.sh  # (Linux/Mac)
-standalone.bat   # (Windows)
-```
-
-2. WAR-Datei deployen:
-
-```bash
-cp target/notizblock.war $WILDFLY_HOME/standalone/deployments/
-```
-
-#### Variante 3: Web Console
-
-1. WildFly Admin Console öffnen: `http://localhost:9990`
-2. Deployments → Add → Upload `notizblock.war`
-
-### H2 Datenbank Konfiguration
-
-Die H2 In-Memory Datenbank wird automatisch konfiguriert. Falls WildFly das H2-Modul nicht enthält:
-
-1. H2 JAR hinzufügen:
-
-```bash
-# H2 Driver ins WildFly modules Verzeichnis kopieren
-mkdir -p $WILDFLY_HOME/modules/com/h2database/h2/main
-cp ~/.m2/repository/com/h2database/h2/2.2.224/h2-2.2.224.jar \
-   $WILDFLY_HOME/modules/com/h2database/h2/main/
-```
-
-2. `module.xml` erstellen in `$WILDFLY_HOME/modules/com/h2database/h2/main/`:
-
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<module xmlns="urn:jboss:module:1.9" name="com.h2database.h2">
-    <resources>
-        <resource-root path="h2-2.2.224.jar"/>
-    </resources>
-    <dependencies>
-        <module name="javax.api"/>
-        <module name="javax.transaction.api"/>
-    </dependencies>
-</module>
-```
-
-3. Driver in `standalone.xml` registrieren (im `<drivers>` Abschnitt):
-
-```xml
-
-<driver name="h2" module="com.h2database.h2">
-    <xa-datasource-class>org.h2.jdbcx.JdbcDataSource</xa-datasource-class>
-</driver>
+mvn clean package
+java -jar target/quarkus-app/quarkus-run.jar
 ```
 
 ## Anwendung aufrufen
 
-Nach erfolgreichem Deployment:
+Nach erfolgreichem Start:
 
 ```
 http://localhost:8080/notizblock/           # Übersichtsseite
 http://localhost:8080/notizblock/detail?id=1   # Detailseite (Beispiel mit ID 1)
 ```
 
-## Entwicklermodus
+## Konfiguration
 
-Für die Entwicklung ist in `web.xml` der Project Stage auf `Development` gesetzt:
+Die gesamte Konfiguration erfolgt über `application.properties`:
 
-```xml
+```properties
+# Application Context Path
+quarkus.http.root-path=/notizblock
 
-<context-param>
-    <param-name>jakarta.faces.PROJECT_STAGE</param-name>
-    <param-value>Development</param-value>
-</context-param>
+# Datasource Configuration (H2 In-Memory)
+quarkus.datasource.db-kind=h2
+quarkus.datasource.jdbc.url=jdbc:h2:mem:notizblockdb
+
+# Hibernate ORM
+quarkus.hibernate-orm.schema-management.strategy=drop-and-create
 ```
 
-Dies aktiviert:
-
-- Detaillierte Fehlermeldungen
-- Keine Caching von Facelets
-- Zusätzliche Debugging-Informationen
-
-Für Produktion auf `Production` ändern.
+Die H2 In-Memory Datenbank wird automatisch konfiguriert – keine manuelle DataSource-Einrichtung nötig.
 
 ## Datenmodell
 
@@ -335,8 +280,7 @@ ViewParameter bereits gebunden ist.
 
 ### Transaktionsverwaltung
 
-- JTA-Transaktionen via `@Transactional` im Repository
-- Container-Managed Transactions
+- Transaktionen via `@Transactional` im Repository
 - Automatisches Rollback bei Exceptions
 
 ### CDI Scopes
@@ -372,26 +316,9 @@ Alle Operationen nutzen AJAX für bessere UX:
 
 ## Troubleshooting
 
-### ClassNotFoundException für PrimeFaces
-
-Stelle sicher, dass PrimeFaces mit dem `jakarta` Classifier geladen wird:
-
-```xml
-
-<classifier>jakarta</classifier>
-```
-
-### DataSource nicht gefunden
-
-Prüfe ob die JNDI-Namen in `persistence.xml` und `notizblock-ds.xml` übereinstimmen:
-
-```
-java:jboss/datasources/NotizblockDS
-```
-
 ### Hibernate DDL-Fehler
 
-Die `persistence.xml` nutzt `create-drop` für Development. Die Datenbank wird bei jedem Neustart neu erstellt.
+Die `application.properties` nutzt `drop-and-create` für Development. Die Datenbank wird bei jedem Neustart neu erstellt.
 
 ### "Keine Notiz-ID angegeben" beim Öffnen der Detailseite
 
@@ -415,14 +342,66 @@ Die `persistence.xml` nutzt `create-drop` für Development. Die Datenbank wird b
 
 ## Erweiterungsmöglichkeiten
 
-- **Benutzer-Authentifizierung**: Login/Logout mit Jakarta Security
+- **Benutzer-Authentifizierung**: Login/Logout mit Quarkus Security
 - **Tags/Kategorien**: Notizen kategorisieren und filtern
 - **Volltextsuche**: Suche im Inhalt aller Notizen
 - **Export/Import**: JSON oder XML Export
 - **Anhänge**: Dateien an Notizen anhängen
 - **Rich-Text Editor**: CKEditor oder TinyMCE Integration
-- **REST API**: JAX-RS Endpoints für externe Clients
-- **Persistente DB**: PostgreSQL oder MySQL statt H2
+- **REST API**: Quarkus RESTEasy Endpoints für externe Clients
+- **Persistente DB**: PostgreSQL oder MySQL statt H2 (via `quarkus-jdbc-postgresql` etc.)
+
+## Migration von Jakarta EE (JSF) nach Quarkus – TODO-Checkliste
+
+Die folgende Checkliste gibt einen schnellen Überblick über die notwendigen Schritte, wenn man ein bestehendes JSF-Frontend aus einer Jakarta EE Anwendung (z.B. WildFly) nach Quarkus migrieren möchte.
+
+### Die Schlüsselrolle von Apache MyFaces
+
+Das „Arbeitstier" hinter JSF in Quarkus ist die **Quarkus Extension von Apache MyFaces** (`quarkus-myfaces`). Sie stellt die Implementierung des JSF-Standards (Jakarta Faces) für Quarkus bereit und macht den Einsatz von JSF in Quarkus überhaupt erst möglich.
+
+Im konkreten Fall dieser Anwendung wird **`quarkus-primefaces`** verwendet – diese Extension liefert Apache MyFaces bereits als transitive Abhängigkeit mit und stellt darüber hinaus die PrimeFaces UI-Komponentenbibliothek in Quarkus-kompatibler Form bereit. Man benötigt also nur eine einzige Dependency:
+
+```xml
+<dependency>
+    <groupId>io.quarkiverse.primefaces</groupId>
+    <artifactId>quarkus-primefaces</artifactId>
+</dependency>
+```
+
+### TODO-Liste
+
+- [ ] **Dependencies austauschen**
+  - `jakarta.jakartaee-api` (provided) entfernen
+  - `primefaces` (mit `jakarta` Classifier) entfernen
+  - Stattdessen `quarkus-primefaces` hinzufügen (bringt MyFaces + PrimeFaces mit)
+  - Quarkus-spezifische Dependencies hinzufügen: `quarkus-hibernate-orm`, `quarkus-jdbc-h2`, `quarkus-hibernate-validator`
+  - Quarkus BOM im `<dependencyManagement>` einbinden
+
+- [ ] **Build-Konfiguration anpassen**
+  - `<packaging>war</packaging>` entfernen (Quarkus baut standardmäßig ein JAR)
+  - `maven-war-plugin` entfernen
+  - `wildfly-maven-plugin` durch `quarkus-maven-plugin` ersetzen
+
+- [ ] **XHTML-Dateien verschieben**
+  - Von `src/main/webapp/` nach `src/main/resources/META-INF/resources/`
+  - Facelets-Seiten (`index.xhtml`, `detail.xhtml`, etc.) sowie Composite Components und Templates
+
+- [ ] **web.xml verschieben**
+  - Von `src/main/webapp/WEB-INF/web.xml` nach `src/main/resources/META-INF/web.xml`
+
+- [ ] **Konfigurationsdateien ersetzen**
+  - `persistence.xml` entfernen → Konfiguration über `application.properties` (`quarkus.datasource.*`, `quarkus.hibernate-orm.*`)
+  - `beans.xml` entfernen → CDI ist in Quarkus standardmäßig aktiv
+  - WildFly-spezifische DataSource-Dateien (`*-ds.xml`) entfernen → Konfiguration über `application.properties`
+
+- [ ] **EntityManager-Injection anpassen**
+  - `@PersistenceContext(unitName = "...")` durch `@Inject` ersetzen
+  - `private` Sichtbarkeit auf package-private ändern (Quarkus CDI erfordert dies)
+
+- [ ] **Anwendung testen**
+  - `mvn quarkus:dev` starten und alle JSF-Seiten durchklicken
+  - AJAX-Updates, Dialoge, Navigation und Validierung prüfen
+  - Sicherstellen, dass PrimeFaces-Komponenten korrekt gerendert werden
 
 ## Lizenz
 

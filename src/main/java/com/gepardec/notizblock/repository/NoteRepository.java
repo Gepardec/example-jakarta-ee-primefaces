@@ -5,7 +5,6 @@ import com.gepardec.notizblock.entity.ChangeType;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
 import jakarta.transaction.Transactional;
 import java.util.List;
 import java.util.Optional;
@@ -17,8 +16,8 @@ import java.util.Optional;
 @ApplicationScoped
 public class NoteRepository {
 
-    @PersistenceContext(unitName = "NotizblockPU")
-    private EntityManager entityManager;
+    @Inject
+    EntityManager entityManager;
 
     @Inject
     private NoteHistoryRepository historyRepository;
