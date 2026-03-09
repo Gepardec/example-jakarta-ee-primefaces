@@ -21,7 +21,7 @@ Dieses Dokument zeigt die Migrationsstrategie für das Notizblock-Projekt von ei
 
 === Aktuelle Architektur
 
-[cols="1,2", options="header"]
+[cols="1,2",options="header"]
 |===
 |Komponente|Details
 
@@ -63,7 +63,7 @@ Dieses Dokument zeigt die Migrationsstrategie für das Notizblock-Projekt von ei
 
 === Zielzustand
 
-[cols="1,2", options="header"]
+[cols="1,2",options="header"]
 |===
 |Komponente|Details
 
@@ -139,103 +139,7 @@ Dieses Dokument zeigt die Migrationsstrategie für das Notizblock-Projekt von ei
 
 === Backend-Migration: Jakarta EE zu Quarkus
 
-==== OpenRewrite
-
-[cols="1,3", options="header"]
-|===
-|Aspekt|Details
-
-|*Typ*
-|Open-Source AST-basiertes Code-Refactoring-Tool
-
-|*Automatisiert*
-a|
-* ✅ javax.* zu jakarta.* Package-Umbenennung
-* ✅ Import-Statements aktualisieren
-* ✅ Annotations aktualisieren
-* ✅ XML-Konfigurationen (persistence.xml, beans.xml)
-* ✅ Maven Dependencies aktualisieren
-* ✅ Jackson javax zu jakarta Migration
-
-|*Installation*
-a|
-*Maven:*
-[source,xml]
-----
-<plugin>
-    <groupId>org.openrewrite.maven</groupId>
-    <artifactId>rewrite-maven-plugin</artifactId>
-    <version>5.40.0</version>
-    <configuration>
-        <activeRecipes>
-            <recipe>org.openrewrite.java.migrate.jakarta.JavaxMigrationToJakarta</recipe>
-        </activeRecipes>
-    </configuration>
-    <dependencies>
-        <dependency>
-            <groupId>org.openrewrite.recipe</groupId>
-            <artifactId>rewrite-migrate-java</artifactId>
-            <version>2.26.1</version>
-        </dependency>
-    </dependencies>
-</plugin>
-----
-
-|*Verwendung*
-a|
-[source,bash]
-----
-# Trockenlauf (nur anzeigen)
-mvn rewrite:discover
-
-# Migration durchführen
-mvn rewrite:run
-
-# Ergebnis prüfen
-git diff
-----
-
-|*Vorteile*
-a|
-* ✅ Sehr hohe Genauigkeit (AST-basiert)
-* ✅ Kein manuelles Suchen & Ersetzen
-* ✅ Validiert Änderungen zur Build-Zeit
-* ✅ Unterstützt Multi-Modul-Projekte
-
-|*Einschränkungen*
-a|
-* ⚠️  Keine Business-Logik-Migration
-* ⚠️  Keine JSF zu REST API Konvertierung
-
-|===
-
-==== Manuelle Migrations-Schritte (Backend)
-
-Diese Schritte können NICHT automatisiert werden:
-
-[cols="2,1", options="header"]
-|===
-|Schritt|Beschreibung
-
-|*CDI zu CDI*
-|CDI bleibt gleich, nur Import-Statements ändern sich (automatisch)
-
-|*JPA Entities*
-|Entities bleiben fast identisch, Option: Panache verwenden für weniger Boilerplate
-
-|*Repositories zu Panache*
-|Konvertierung von `@PersistenceContext` zu Panache Repositories
-
-|*JSF Beans zu JAX-RS Endpoints*
-|Backing Beans in REST Controller umwandeln (größte manuelle Arbeit)
-
-|*DTOs erstellen*
-|Data Transfer Objects für API-Kommunikation
-
-|*Error Handling*
-|Exception Mapper für REST API
-
-|===
+Skipped: Migrierte Version von feature/quarkus-primefaces verwendet
 
 === Frontend-Migration: JSF/Primefaces zu Angular
 
@@ -243,7 +147,7 @@ Diese Schritte können NICHT automatisiert werden:
 
 *Strategie:* Komponenten-basierte Migration mit Angular LLM (Claude/GitHub Copilot)
 
-[cols="1,2,1", options="header"]
+[cols="1,2,1",options="header"]
 |===
 |Schritt|Beschreibung|Automatisierungsgrad
 
@@ -288,40 +192,9 @@ a|
 
 |===
 
-==== PrimeFaces zu PrimeNG Mapping
-
-*Vorteil:* PrimeNG ist die offizielle Angular-Version von PrimeFaces – hohe Kompatibilität
-
-[cols="1,1", options="header"]
-|===
-|PrimeFaces (JSF)|PrimeNG (Angular)
-
-|`<p:dataTable>`
-|`<p-table>`
-
-|`<p:dialog>`
-|`<p-dialog>`
-
-|`<p:commandButton>`
-|`<p-button>` + `(click)`
-
-|`<p:inputText>`
-|`<input pInputText>` + FormControl
-
-|`<p:growl>`
-|`<p-toast>` + MessageService
-
-|`<p:panelGrid>`
-|CSS Grid / Flexbox
-
-|`<ui:include>`
-|Angular Component
-
-|===
-
 ==== OpenAPI Generator für HTTP Client
 
-[cols="1,3", options="header"]
+[cols="1,3",options="header"]
 |===
 |Aspekt|Details
 
@@ -362,7 +235,7 @@ a|
 
 === Phase 1: Analyse & Setup
 
-[cols="1,2,1", options="header"]
+[cols="1,2,1",options="header"]
 |===
 |Task|Beschreibung|Tool
 
@@ -371,7 +244,7 @@ a|
 |Quarkus CLI
 
 |1.2 Angular Projekt
-|Neues Angular-Projekt mit PrimeNG erstellen
+|Neues Angular-Projekt erstellen
 |Angular CLI
 
 |===
@@ -380,7 +253,7 @@ a|
 
 === Phase 2: Backend Code-Migration
 
-[cols="1,2,1", options="header"]
+[cols="1,2,1",options="header"]
 |===
 |Task|Beschreibung|Tool
 
@@ -398,7 +271,7 @@ a|
 
 === Phase 3: REST API Entwicklung
 
-[cols="1,2,1", options="header"]
+[cols="1,2,1",options="header"]
 |===
 |Task|Beschreibung|Tool
 
@@ -430,12 +303,12 @@ a|
 
 === Phase 4: Angular Projekt-Setup
 
-[cols="1,2,1", options="header"]
+[cols="1,2,1",options="header"]
 |===
 |Task|Beschreibung|Tool
 
-|4.1 PrimeNG installieren
-|`ng add primeng` + Theme konfigurieren
+|4.1 Angular Material installieren
+|Theme konfigurieren
 |Angular CLI
 
 |4.2 API Client generieren
@@ -460,7 +333,7 @@ a|
 
 === Phase 5: UI-Komponenten Migration
 
-[cols="2,2,2,1", options="header"]
+[cols="2,2,2,1",options="header"]
 |===
 |Task|Quelle (JSF)|Ziel (Angular)|LLM-Support
 
@@ -644,9 +517,10 @@ public class NoteResource {
 # SCHRITT 1: Angular Projekt erstellen
 ng new notizblock-angular --routing --style=scss
 cd notizblock-angular
+ng update @angular/core@21 @angular/cli@21
 
-# SCHRITT 2: PrimeNG installieren
-npm install primeng primeicons
+# SCHRITT 2: Angular Material installieren
+npm install --save @angular/material @angular/cdk
 
 # SCHRITT 3: OpenAPI Client generieren
 npm install @openapitools/openapi-generator-cli -g
@@ -658,7 +532,7 @@ openapi-generator-cli generate \
 # SCHRITT 4: Module konfigurieren (app.config.ts)
 # - HttpClientModule
 # - BrowserAnimationsModule
-# - PrimeNG Module importieren
+# - Material Module importieren
 
 # SCHRITT 5: Komponenten generieren
 ng generate component components/note-list
