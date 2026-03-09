@@ -1,0 +1,166 @@
+---
+openapi: 3.1.0
+tags:
+- name: Notes
+  description: Notizen-Verwaltung API
+components:
+  schemas:
+    LocalDateTime:
+      type: string
+      format: date-time
+      examples:
+      - 2022-03-10T12:15:50
+    NoteDTO:
+      type: object
+      required:
+      - title
+      - content
+      properties:
+        id:
+          type: integer
+          format: int64
+          readOnly: true
+        title:
+          type: string
+          maxLength: 255
+          pattern: \S
+        content:
+          type: string
+          maxLength: 5000
+          pattern: \S
+        createdAt:
+          $ref: "#/components/schemas/LocalDateTime"
+          type: string
+          readOnly: true
+        updatedAt:
+          $ref: "#/components/schemas/LocalDateTime"
+          type: string
+          readOnly: true
+paths:
+  /notizblock/api/notes:
+    get:
+      summary: Alle Notizen abrufen
+      description: "Gibt eine Liste aller Notizen zurück, sortiert nach Erstellungsdatum\
+        \ (neueste zuerst)"
+      tags:
+      - Notes
+      responses:
+        "200":
+          description: Erfolg - Liste der Notizen
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/NoteDTO"
+    post:
+      summary: Neue Notiz erstellen
+      description: Erstellt eine neue Notiz und gibt sie mit generierter ID zurück
+      tags:
+      - Notes
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NoteDTO"
+        required: true
+      responses:
+        "201":
+          description: Notiz erfolgreich erstellt
+        "400":
+          description: Ungültige Eingabedaten (Validierungsfehler)
+  /notizblock/api/notes/{id}:
+    put:
+      summary: Notiz aktualisieren
+      description: Aktualisiert eine bestehende Notiz
+      tags:
+      - Notes
+      parameters:
+      - description: Notiz-ID
+        name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NoteDTO"
+        required: true
+      responses:
+        "200":
+          description: Notiz erfolgreich aktualisiert
+          content:
+            application/json:
+              schema: {}
+        "404":
+          description: Notiz nicht gefunden
+        "400":
+          description: Ungültige Eingabedaten
+    get:
+      summary: Eine Notiz abrufen
+      description: Gibt eine einzelne Notiz anhand ihrer ID zurück
+      tags:
+      - Notes
+      parameters:
+      - description: Notiz-ID
+        name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "200":
+          description: Notiz gefunden
+          content:
+            application/json:
+              schema: {}
+        "404":
+          description: Notiz nicht gefunden
+    delete:
+      summary: Notiz löschen
+      description: Löscht eine Notiz anhand ihrer ID
+      tags:
+      - Notes
+      parameters:
+      - description: Notiz-ID
+        name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "204":
+          description: Notiz erfolgreich gelöscht
+        "404":
+          description: Notiz nicht gefunden
+  /notizblock/api/notes/{id}/history:
+    get:
+      summary: Notiz-Historie abrufen
+      description: Gibt alle Änderungen einer Notiz zurück (sortiert nach Zeitstempel)
+      tags:
+      - Notes
+      parameters:
+      - description: Notiz-ID
+        name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "200":
+          description: Historie erfolgreich abgerufen
+          content:
+            application/json:
+              schema: {}
+        "404":
+          description: Notiz nicht gefunden
+info:
+  title: Notizblock REST API
+  version: 1.0.0
+  description: REST API für die Notizblock-Anwendung

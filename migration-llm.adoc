@@ -1,0 +1,674 @@
+= LLM-Prompts für Phase 3: REST API Migration
+:encoding: UTF-8
+:toc:
+:toclevels: 3
+:sectnums:
+:icons: font
+:source-highlighter: highlightjs
+
+== Übersicht
+
+Dieses Dokument dokumentiert alle LLM-Prompts, die für die automatisierte Migration von JSF Backing Beans zu Quarkus REST APIs verwendet wurden.
+
+**Strategie:** Option B - MapStruct + LLM
+
+**Datum:** {docdate}
+
+== Phase 3: REST API Entwicklung
+
+=== Schritt 1: Dependencies hinzufügen
+
+**Aufgabe:** Quarkus Extensions und MapStruct zur pom.xml hinzufügen
+
+**Prompt:** (Manuell/CLI - kein LLM-Prompt nötig)
+
+[source,bash]
+----
+quarkus ext add rest-jackson
+quarkus ext add smallrye-openapi
+----
+
+**Ergebnis:** Dependencies wurden hinzugefügt
+
+---
+
+=== Schritt 2: DTOs erstellen
+
+==== Prompt 2.1: NoteDTO generieren
+
+**Kontext-Dateien:**
+- `src/main/java/com/gepardec/notizblock/entity/Note.java`
+
+**Prompt:**
+
+[source,text]
+----
+Erstelle ein Data Transfer Object (DTO) basierend auf der folgenden JPA Entity.
+
+Entity-Datei: Note.java
+[Note.java Inhalt hier]
+
+Anforderungen:
+1. Package: com.gepardec.notizblock.dto
+2. Klassenname: NoteDTO
+3. Alle Felder von Note übernehmen (id, title, content, createdAt, updatedAt)
+4. Verwende Jakarta Bean Validation Annotations:
+   - @NotBlank für title und content
+   - @Size für Längenbeschränkungen
+5. Keine JPA Annotations
+6. Jackson Annotations für JSON-Serialisierung wo nötig
+7. Konstruktoren: Default + All-Args
+8. Getter/Setter für alle Felder
+9. equals(), hashCode(), toString() basierend auf id
+
+Hinweise:
+- createdAt und updatedAt sind read-only (keine Setter in API-Requests)
+- LocalDateTime bleibt als Typ (Jackson serialisiert automatisch)
+----
+
+**Generierter Code:** (siehe NoteDTO.java)
+
+---
+
+==== Prompt 2.2: NoteHistoryDTO generieren
+
+**Kontext-Dateien:**
+- `src/main/java/com/gepardec/notizblock/entity/NoteHistory.java`
+
+**Prompt:**
+
+[source,text]
+----
+Erstelle ein Data Transfer Object (DTO) basierend auf der folgenden JPA Entity.
+
+Entity-Datei: NoteHistory.java
+[NoteHistory.java Inhalt hier]
+
+Anforderungen:
+1. Package: com.gepardec.notizblock.dto
+2. Klassenname: NoteHistoryDTO
+3. Felder:
+   - Long id
+   - Long noteId (WICHTIG: Statt der kompletten Note-Entity nur die ID verwenden)
+   - ChangeType changeType
+   - LocalDateTime changedAt
+4. Keine Validierungs-Annotations nötig (read-only DTO)
+5. Konstruktoren: Default + All-Args
+6. Getter/Setter für alle Felder
+7. equals(), hashCode(), toString()
+
+Hinweise:
+- Dies ist ein read-only DTO (nur für GET Requests)
+- noteId statt Note-Objekt verhindert Lazy-Loading Probleme
+----
+
+**Generierter Code:** (siehe NoteHistoryDTO.java)
+
+---
+
+==== Prompt 2.3: ErrorResponse DTO generieren
+
+**Prompt:**
+
+[source,text]
+----
+Erstelle ein Error Response DTO für einheitliche Fehlerantworten in der REST API.
+
+Anforderungen:
+1. Package: com.gepardec.notizblock.dto
+2. Klassenname: ErrorResponse
+3. Felder:
+   - int status (HTTP Status Code)
+   - String message (Fehlermeldung)
+   - LocalDateTime timestamp (Zeitpunkt des Fehlers)
+   - String path (optional: Request-Pfad)
+4. Konstruktoren:
+   - Default Constructor
+   - Constructor(status, message) - setzt timestamp automatisch
+   - Constructor(status, message, path)
+5. Getter/Setter für alle Felder
+6. toString() Methode
+
+Hinweise:
+- Wird für Exception Mapper verwendet
+- Jackson serialisiert zu JSON
+----
+
+**Generierter Code:** (siehe ErrorResponse.java)
+
+---
+
+=== Schritt 3: MapStruct Mapper-Interfaces erstellen
+
+==== Prompt 3.1: NoteMapper Interface generieren
+
+**Kontext-Dateien:**
+- `src/main/java/com/gepardec/notizblock/entity/Note.java`
+- `src/main/java/com/gepardec/notizblock/dto/NoteDTO.java`
+
+**Prompt:**
+
+[source,text]
+----
+Erstelle ein MapStruct Mapper-Interface für die Konvertierung zwischen Note Entity und NoteDTO.
+
+Kontext-Dateien:
+- Note.java (Entity)
+- NoteDTO.java (DTO)
+
+Anforderungen:
+1. Package: com.gepardec.notizblock.mapper
+2. Interface-Name: NoteMapper
+3. MapStruct Annotation: @Mapper(componentModel = "cdi")
+4. Methoden:
+   - NoteDTO toDTO(Note entity)
+   - Note toEntity(NoteDTO dto)
+   - List<NoteDTO> toDTOList(List<Note> entities)
+   - List<Note> toEntityList(List<NoteDTO> dtos)
+5. Alle Felder haben gleiche Namen → automatisches Mapping
+6. Keine @Mapping Annotations nötig (Feldnamen stimmen überein)
+
+Hinweise:
+- componentModel = "cdi" für Quarkus CDI Integration
+- MapStruct generiert Implementierung zur Compile-Time
+- Verwendung: @Inject NoteMapper in REST Resource
+----
+
+**Generierter Code:** (siehe NoteMapper.java)
+
+---
+
+==== Prompt 3.2: NoteHistoryMapper Interface generieren
+
+**Kontext-Dateien:**
+- `src/main/java/com/gepardec/notizblock/entity/NoteHistory.java`
+- `src/main/java/com/gepardec/notizblock/dto/NoteHistoryDTO.java`
+
+**Prompt:**
+
+[source,text]
+----
+Erstelle ein MapStruct Mapper-Interface für die Konvertierung zwischen NoteHistory Entity und NoteHistoryDTO.
+
+Kontext-Dateien:
+- NoteHistory.java (Entity)
+- NoteHistoryDTO.java (DTO)
+
+Anforderungen:
+1. Package: com.gepardec.notizblock.mapper
+2. Interface-Name: NoteHistoryMapper
+3. MapStruct Annotation: @Mapper(componentModel = "cdi")
+4. Methoden:
+   - NoteHistoryDTO toDTO(NoteHistory entity)
+   - List<NoteHistoryDTO> toDTOList(List<NoteHistory> entities)
+5. Custom Mapping nötig:
+   - Entity.note.id → DTO.noteId
+
+Verwende @Mapping Annotation:
+@Mapping(source = "note.id", target = "noteId")
+
+Hinweise:
+- Nur toDTO Methoden (NoteHistory ist read-only)
+- note.id wird zu noteId gemappt
+----
+
+**Generierter Code:** (siehe NoteHistoryMapper.java)
+
+---
+
+=== Schritt 4: REST Resource implementieren
+
+==== Prompt 4.1: NoteResource generieren
+
+**Kontext-Dateien:**
+- `src/main/java/com/gepardec/notizblock/bean/NoteBean.java`
+- `src/main/java/com/gepardec/notizblock/repository/NoteRepository.java`
+- `src/main/java/com/gepardec/notizblock/dto/NoteDTO.java`
+- `src/main/java/com/gepardec/notizblock/mapper/NoteMapper.java`
+
+**Prompt:**
+
+[source,text]
+----
+Konvertiere den folgenden JSF Backing Bean zu einer JAX-RS REST Resource.
+
+Kontext-Dateien:
+- NoteBean.java (JSF Bean mit CRUD-Logik)
+- NoteRepository.java (Data Access)
+- NoteDTO.java (DTO)
+- NoteMapper.java (MapStruct Mapper)
+
+Anforderungen:
+1. Package: com.gepardec.notizblock.resource
+2. Klassenname: NoteResource
+3. JAX-RS Annotations:
+   - @Path("/api/notes")
+   - @Produces(MediaType.APPLICATION_JSON)
+   - @Consumes(MediaType.APPLICATION_JSON)
+4. Dependency Injection:
+   - @Inject NoteRepository noteRepository
+   - @Inject NoteMapper noteMapper
+5. Endpoints (basierend auf NoteBean Methoden):
+
+   a) GET /api/notes - Liste aller Notizen
+      - Ruft noteRepository.findAll()
+      - Konvertiert mit noteMapper.toDTOList()
+      - Return: List<NoteDTO>
+
+   b) GET /api/notes/{id} - Eine Notiz abrufen
+      - @PathParam("id") Long id
+      - Ruft noteRepository.findById(id)
+      - Wenn nicht gefunden: Response.status(404)
+      - Wenn gefunden: Response.ok(noteMapper.toDTO(note))
+
+   c) POST /api/notes - Neue Notiz erstellen
+      - Body: NoteDTO (ohne id)
+      - Konvertiert mit noteMapper.toEntity()
+      - Ruft noteRepository.create()
+      - Return: Response.status(201).entity(noteMapper.toDTO(created))
+
+   d) PUT /api/notes/{id} - Notiz aktualisieren
+      - @PathParam("id") Long id
+      - Body: NoteDTO
+      - Prüft ob Notiz existiert (404 wenn nicht)
+      - Setzt id vom Path-Parameter
+      - Ruft noteRepository.update()
+      - Return: Response.ok(noteMapper.toDTO(updated))
+
+   e) DELETE /api/notes/{id} - Notiz löschen
+      - @PathParam("id") Long id
+      - Ruft noteRepository.delete(id)
+      - Return: Response.noContent() (204)
+
+6. Error Handling:
+   - Try-Catch für alle Methoden
+   - Bei Fehler: Response.status(500).entity(new ErrorResponse(...))
+
+7. Keine @Transactional nötig (Repository hat bereits @Transactional)
+
+Hinweise:
+- Verwende Optional.orElseThrow() für 404 Handling
+- Alle Responses als Response-Objekt für flexible Status-Codes
+- DTO statt Entity verwenden (nie Entities direkt zurückgeben)
+----
+
+**Generierter Code:** (siehe NoteResource.java)
+
+---
+
+==== Prompt 4.2: NoteHistoryResource generieren (optional)
+
+**Prompt:**
+
+[source,text]
+----
+Erstelle eine zusätzliche REST Resource für Note History Endpoints.
+
+Anforderungen:
+1. Package: com.gepardec.notizblock.resource
+2. Klassenname: NoteHistoryResource (oder als Nested-Endpoint in NoteResource)
+3. Endpoint:
+   - GET /api/notes/{id}/history
+   - Ruft NoteHistoryRepository.findByNoteId(id)
+   - Konvertiert mit NoteHistoryMapper.toDTOList()
+   - Return: List<NoteHistoryDTO>
+
+Entscheidung:
+- Option A: Separates NoteHistoryResource
+- Option B: Als Methode in NoteResource (@Path("{id}/history"))
+
+Empfehle Option B für bessere RESTful Struktur.
+----
+
+**Generierter Code:** (in NoteResource.java integriert)
+
+---
+
+=== Schritt 5: Exception Handling implementieren
+
+==== Prompt 5.1: Custom NotFoundException erstellen
+
+**Prompt:**
+
+[source,text]
+----
+Erstelle eine Custom Exception für "Not Found" Fälle in der REST API.
+
+Anforderungen:
+1. Package: com.gepardec.notizblock.exception
+2. Klassenname: NotFoundException
+3. Extends: RuntimeException
+4. Konstruktoren:
+   - NotFoundException(String message)
+   - NotFoundException(String message, Throwable cause)
+5. Serial Version UID
+
+Hinweise:
+- Wird geworfen wenn Notiz mit ID nicht gefunden
+- ExceptionMapper wandelt in HTTP 404 um
+----
+
+**Generierter Code:** (siehe NotFoundException.java)
+
+---
+
+==== Prompt 5.2: NotFoundExceptionMapper erstellen
+
+**Prompt:**
+
+[source,text]
+----
+Erstelle einen JAX-RS Exception Mapper für NotFoundException.
+
+Anforderungen:
+1. Package: com.gepardec.notizblock.exception
+2. Klassenname: NotFoundExceptionMapper
+3. Implements: ExceptionMapper<NotFoundException>
+4. Annotation: @Provider
+5. Methode toResponse():
+   - Erstellt ErrorResponse mit:
+     * status = 404
+     * message = exception.getMessage()
+     * timestamp = LocalDateTime.now()
+   - Return: Response.status(404).entity(errorResponse).build()
+
+Hinweise:
+- @Provider registriert automatisch in JAX-RS
+- Fängt alle NotFoundException global ab
+----
+
+**Generierter Code:** (siehe NotFoundExceptionMapper.java)
+
+---
+
+==== Prompt 5.3: ValidationExceptionMapper erstellen
+
+**Prompt:**
+
+[source,text]
+----
+Erstelle einen Exception Mapper für Bean Validation Fehler.
+
+Anforderungen:
+1. Package: com.gepardec.notizblock.exception
+2. Klassenname: ValidationExceptionMapper
+3. Implements: ExceptionMapper<ConstraintViolationException>
+4. Annotation: @Provider
+5. Methode toResponse():
+   - Sammelt alle Validation-Fehler in eine Message
+   - Erstellt ErrorResponse mit status = 400
+   - Return: Response.status(400).entity(errorResponse).build()
+
+Hinweise:
+- Fängt @NotBlank, @Size Violations
+- Liefert verständliche Fehlermeldungen
+----
+
+**Generierter Code:** (siehe ValidationExceptionMapper.java)
+
+---
+
+=== Schritt 6: OpenAPI Annotations hinzufügen
+
+==== Prompt 6.1: OpenAPI Annotations für NoteResource
+
+**Prompt:**
+
+[source,text]
+----
+Füge OpenAPI/Swagger Annotations zur NoteResource Klasse hinzu.
+
+Anforderungen:
+1. Klassen-Level:
+   - @Tag(name = "Notes", description = "Notizen-Verwaltung API")
+
+2. Methoden-Level (für jeden Endpoint):
+
+   GET /api/notes:
+   - @Operation(summary = "Alle Notizen abrufen")
+   - @APIResponse(responseCode = "200", description = "Erfolg")
+
+   GET /api/notes/{id}:
+   - @Operation(summary = "Eine Notiz abrufen")
+   - @APIResponse(responseCode = "200", description = "Notiz gefunden")
+   - @APIResponse(responseCode = "404", description = "Notiz nicht gefunden")
+
+   POST /api/notes:
+   - @Operation(summary = "Neue Notiz erstellen")
+   - @APIResponse(responseCode = "201", description = "Notiz erstellt")
+   - @APIResponse(responseCode = "400", description = "Ungültige Eingabe")
+
+   PUT /api/notes/{id}:
+   - @Operation(summary = "Notiz aktualisieren")
+   - @APIResponse(responseCode = "200", description = "Notiz aktualisiert")
+   - @APIResponse(responseCode = "404", description = "Notiz nicht gefunden")
+
+   DELETE /api/notes/{id}:
+   - @Operation(summary = "Notiz löschen")
+   - @APIResponse(responseCode = "204", description = "Notiz gelöscht")
+
+3. Parameter-Annotations:
+   - @Parameter(description = "Notiz-ID") für Path-Parameter
+
+Hinweise:
+- Import: org.eclipse.microprofile.openapi.annotations.*
+- Swagger UI zeigt diese Infos an
+----
+
+**Anwendung:** (OpenAPI Annotations in NoteResource.java)
+
+---
+
+=== Schritt 7: CORS Konfiguration
+
+**Aufgabe:** CORS für Angular Frontend aktivieren
+
+**Prompt:** (Konfiguration - kein LLM-Prompt)
+
+[source,properties]
+----
+# src/main/resources/application.properties
+
+# CORS für Angular Frontend (Port 4200)
+quarkus.http.cors=true
+quarkus.http.cors.origins=http://localhost:4200
+quarkus.http.cors.methods=GET,POST,PUT,DELETE,OPTIONS
+quarkus.http.cors.headers=accept,authorization,content-type,x-requested-with
+----
+
+---
+
+=== Schritt 8: Testing
+
+==== Prompt 8.1: REST Assured Test generieren
+
+**Prompt:**
+
+[source,text]
+----
+Erstelle JUnit Tests mit REST Assured für die NoteResource Endpoints.
+
+Anforderungen:
+1. Package: com.gepardec.notizblock.resource
+2. Klassenname: NoteResourceTest
+3. Annotation: @QuarkusTest
+4. Test-Methoden:
+
+   a) testListAllNotes()
+      - GET /api/notes
+      - Expect: Status 200
+      - Content-Type: application/json
+
+   b) testCreateNote()
+      - POST /api/notes
+      - Body: {"title": "Test", "content": "Test Inhalt"}
+      - Expect: Status 201
+      - Prüfe: Response enthält id
+
+   c) testGetNoteById()
+      - Erst Note erstellen
+      - Dann GET /api/notes/{id}
+      - Expect: Status 200
+      - Prüfe: title und content korrekt
+
+   d) testUpdateNote()
+      - Note erstellen
+      - PUT /api/notes/{id} mit neuem Titel
+      - Expect: Status 200
+      - Prüfe: Titel aktualisiert
+
+   e) testDeleteNote()
+      - Note erstellen
+      - DELETE /api/notes/{id}
+      - Expect: Status 204
+      - Prüfe: GET 404 nach Delete
+
+   f) testNotFoundError()
+      - GET /api/notes/99999
+      - Expect: Status 404
+
+Hinweise:
+- given().when().then() Pattern
+- @TestMethodOrder für Reihenfolge
+- @BeforeEach für Test-Daten Setup
+----
+
+**Generierter Code:** (siehe NoteResourceTest.java)
+
+---
+
+=== Schritt 9: OpenAPI Spec Export
+
+**Aufgabe:** OpenAPI JSON für Angular Client-Generierung exportieren
+
+**Commands:**
+
+[source,bash]
+----
+# 1. Quarkus im Dev-Modus starten
+mvn quarkus:dev
+
+# 2. OpenAPI Spec herunterladen
+curl http://localhost:8080/q/openapi > openapi.json
+
+# 3. Swagger UI öffnen (Browser)
+open http://localhost:8080/q/swagger-ui
+----
+
+---
+
+== Zusammenfassung
+
+=== Generierte Dateien
+
+[cols="1,2",options="header"]
+|===
+|Kategorie|Dateien
+
+|DTOs
+a|
+* NoteDTO.java
+* NoteHistoryDTO.java
+* ErrorResponse.java
+
+|Mapper (MapStruct)
+a|
+* NoteMapper.java (Interface)
+* NoteHistoryMapper.java (Interface)
+* NoteMapperImpl.java (generiert von MapStruct)
+* NoteHistoryMapperImpl.java (generiert von MapStruct)
+
+|REST Resources
+a|
+* NoteResource.java
+
+|Exception Handling
+a|
+* NotFoundException.java
+* NotFoundExceptionMapper.java
+* ValidationExceptionMapper.java
+
+|Tests
+a|
+* NoteResourceTest.java
+
+|Konfiguration
+a|
+* application.properties (erweitert)
+
+|===
+
+=== Verwendete LLM-Prompts
+
+**Anzahl Prompts:** 11
+
+**Prompt-Typen:**
+- Code-Generierung: 8 - Annotation-Erweiterung: 1 - Test-Generierung: 1 - Review/Optimization: 1
+
+=== Automatisierungsgrad
+
+[cols="1,1",options="header"]
+|===
+|Schritt|Automatisierung
+
+|Dependencies
+|100% (Quarkus CLI)
+
+|DTOs
+|95% (LLM)
+
+|Mapper
+|100% (MapStruct generiert Code)
+
+|REST Resources
+|90% (LLM)
+
+|Exception Handling
+|85% (LLM)
+
+|OpenAPI Annotations
+|80% (LLM)
+
+|CORS Config
+|50% (Copy/Paste)
+
+|Testing
+|70% (LLM für Basis-Tests)
+
+|OpenAPI Export
+|100% (curl)
+
+|===
+
+**Gesamt-Automatisierung:** ~85%
+
+---
+
+== Lessons Learned
+
+=== Was funktioniert gut mit LLM:
+
+1. ✅ DTO-Generierung aus Entities
+2. ✅ MapStruct Interface-Definitionen
+3. ✅ REST Resource Struktur (aus Backing Beans)
+4. ✅ Exception Handling Boilerplate
+5. ✅ OpenAPI Annotations
+6. ✅ Basis-Tests mit REST Assured
+
+=== Was manuelles Review braucht:
+
+1. ⚠️ Business-Logik Validierung
+2. ⚠️ Error Handling Edge Cases
+3. ⚠️ Performance-Optimierung (N+1 Queries)
+4. ⚠️ Security (Authentication/Authorization)
+5. ⚠️ Projekt-spezifische Validierung
+
+=== Optimierungen:
+
+1. **MapStruct** reduziert Mapping-Code signifikant
+2. **Quarkus Dev Mode** ermöglicht Hot-Reload
+3. **OpenAPI** generiert automatisch API-Dokumentation
+4. **REST Assured** vereinfacht Testing
+
+---
+

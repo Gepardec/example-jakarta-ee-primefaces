@@ -235,7 +235,7 @@ a|
 
 === Phase 1: Analyse & Setup
 
-[cols="1,2,1",options="header"]
+[cols="1,2,2",options="header"]
 |===
 |Task|Beschreibung|Tool
 
@@ -245,7 +245,7 @@ a|
 
 |1.2 Angular Projekt
 |Neues Angular-Projekt erstellen
-|Angular CLI
+|Angular CLI: <<frontend-migration-workflow,Frontend Migration Schritt 1>>
 
 |===
 
@@ -510,6 +510,7 @@ public class NoteResource {
 }
 ----
 
+[[frontend-migration-workflow]]
 ==== Frontend Migration Workflow
 
 [source,bash]
@@ -525,7 +526,7 @@ npm install --save @angular/material @angular/cdk
 # SCHRITT 3: OpenAPI Client generieren
 npm install @openapitools/openapi-generator-cli -g
 openapi-generator-cli generate \
-    -i ../notizblock-quarkus/openapi.json \
+    -i ../openapi.json \
     -g typescript-angular \
     -o src/app/api
 

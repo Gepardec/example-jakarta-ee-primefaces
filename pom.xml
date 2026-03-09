@@ -17,6 +17,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <quarkus.version>3.31.4</quarkus.version>
         <primefaces-quarkus.version>4.15.13</primefaces-quarkus.version>
+        <mapstruct.version>1.5.5.Final</mapstruct.version>
     </properties>
 
     <dependencyManagement>
@@ -56,6 +57,25 @@
             <artifactId>quarkus-primefaces</artifactId>
             <version>${primefaces-quarkus.version}</version>
         </dependency>
+
+        <!-- Quarkus REST (RESTEasy Reactive with Jackson) -->
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-rest-jackson</artifactId>
+        </dependency>
+
+        <!-- Quarkus OpenAPI and Swagger UI -->
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-smallrye-openapi</artifactId>
+        </dependency>
+
+        <!-- MapStruct for Entity-DTO Mapping -->
+        <dependency>
+            <groupId>org.mapstruct</groupId>
+            <artifactId>mapstruct</artifactId>
+            <version>${mapstruct.version}</version>
+        </dependency>
     </dependencies>
 
     <build>
@@ -68,6 +88,13 @@
                 <version>3.11.0</version>
                 <configuration>
                     <release>17</release>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.mapstruct</groupId>
+                            <artifactId>mapstruct-processor</artifactId>
+                            <version>${mapstruct.version}</version>
+                        </path>
+                    </annotationProcessorPaths>
                 </configuration>
             </plugin>
 
