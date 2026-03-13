@@ -1,0 +1,962 @@
+= Phase 4: Angular Projekt Setup - Detaillierter Plan
+:encoding: UTF-8
+:toc:
+:toclevels: 4
+:sectnums:
+:icons: font
+:source-highlighter: highlightjs
+
+== Übersicht
+
+**Ziel:** Angular-Grundstruktur mit vollständiger API-Integration aufbauen
+
+**Status Quo:**
+- ✅ Angular 21 Projekt existiert bereits (`notizblock-angular/`) - ✅ Angular Material ist bereits installiert - ✅ Routing-Struktur ist vorhanden (leer) - ✅ REST API läuft auf http://localhost:8080
+- ✅ OpenAPI Spec verfügbar (`openapi.json`)
+
+**Deliverable:** Produktionsreife Angular-App Grundstruktur mit API-Integration
+
+---
+
+== Schritt-für-Schritt Plan
+
+=== Schritt 4.1: Angular Material konfigurieren
+
+**Was:** Angular Material Theme und Core-Module einrichten
+
+**Automatisierungsgrad:** 80%
+
+**Tool:** Angular CLI + Manuelle Konfiguration
+
+**Commands:**
+
+[source,bash]
+----
+cd notizblock-angular
+
+# Material Theme und Icons bereits vorhanden
+# Eventuell zusätzliche Icons installieren
+npm install @angular/material-icons --save
+----
+
+**Konfiguration:**
+
+`src/styles.scss` erweitern:
+
+[source,scss]
+----
+// Material Theme importieren
+@import '@angular/material/prebuilt-themes/indigo-pink.css';
+
+// Optional: Custom Theme
+// @import 'theme.scss';
+
+// Material Icons
+@import 'https://fonts.googleapis.com/icon?family=Material+Icons';
+@import 'https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap';
+
+// Global Styles
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: Roboto, "Helvetica Neue", sans-serif;
+  margin: 0;
+}
+
+html, body {
+  height: 100%;
+}
+----
+
+**Custom Theme erstellen (Optional):**
+
+`src/theme.scss`:
+
+[source,scss]
+----
+@use '@angular/material' as mat;
+
+// Define custom color palette
+$notizblock-primary: mat.define-palette(mat.$indigo-palette);
+$notizblock-accent: mat.define-palette(mat.$pink-palette, A200, A100, A400);
+$notizblock-warn: mat.define-palette(mat.$red-palette);
+
+// Create theme
+$notizblock-theme: mat.define-light-theme((
+  color: (
+    primary: $notizblock-primary,
+    accent: $notizblock-accent,
+    warn: $notizblock-warn,
+  )
+));
+
+// Apply theme
+@include mat.all-component-themes($notizblock-theme);
+----
+
+**Geschätzter Zeitaufwand:** 10 Minuten
+
+---
+
+=== Schritt 4.2: OpenAPI Client generieren
+
+**Was:** TypeScript Angular Services aus OpenAPI Specification generieren
+
+**Warum:**
+- Automatische Type-Safe API-Client Generierung - Keine manuellen HTTP-Calls nötig - Automatische Updates bei API-Änderungen
+
+**Automatisierungsgrad:** 95%
+
+**Tool:** OpenAPI Generator CLI
+
+**Commands:**
+
+[source,bash]
+----
+cd notizblock-angular
+
+# OpenAPI Generator installieren (global)
+npm install @openapitools/openapi-generator-cli -g
+
+# Alternative: Als dev dependency
+npm install --save-dev @openapitools/openapi-generator-cli
+
+# Angular Client generieren
+openapi-generator-cli generate \
+    -i ../openapi.json \
+    -g typescript-angular \
+    -o src/app/api \
+    --additional-properties=ngVersion=21,providedInRoot=true
+----
+
+**Generierte Dateien:**
+
+[source]
+----
+src/app/api/
+├── api/
+│   └── notes.service.ts          # NotesService mit allen Endpoints
+├── model/
+│   ├── note-dto.ts                # NoteDTO Model
+│   ├── note-history-dto.ts        # NoteHistoryDTO Model
+│   └── error-response.ts          # ErrorResponse Model
+├── api.module.ts                  # API Module
+├── configuration.ts               # API Configuration
+├── variables.ts                   # Variables
+└── index.ts                       # Barrel Export
+----
+
+**Manuelle Nacharbeit (5%):**
+- API Base Path in `environment.ts` konfigurieren - Eventuell generierte Services anpassen (selten nötig)
+
+**Geschätzter Zeitaufwand:** 10 Minuten
+
+---
+
+=== Schritt 4.3: Environment Configuration
+
+**Was:** API Base URL und Umgebungsvariablen konfigurieren
+
+**Automatisierungsgrad:** 30% (Template vorhanden, Werte manuell)
+
+**Tool:** Manuell (oder LLM kann Template generieren)
+
+**Dateien erstellen:**
+
+`src/environments/environment.ts`:
+
+[source,typescript]
+----
+export const environment = {
+  production: false,
+  apiBaseUrl: 'http://localhost:8080/notizblock'
+};
+----
+
+`src/environments/environment.prod.ts`:
+
+[source,typescript]
+----
+export const environment = {
+  production: true,
+  apiBaseUrl: '/notizblock'  // Relative URL für Production
+};
+----
+
+**App Config erweitern:**
+
+`src/app/app.config.ts`:
+
+[source,typescript]
+----
+import { ApplicationConfig, provideZoneChangeDetection } from '@angular/core';
+import { provideRouter } from '@angular/router';
+import { provideHttpClient, withInterceptors } from '@angular/common/http';
+import { provideAnimations } from '@angular/platform-browser/animations';
+
+import { routes } from './app.routes';
+import { apiInterceptor } from './core/interceptors/api.interceptor';
+
+export const appConfig: ApplicationConfig = {
+  providers: [
+    provideZoneChangeDetection({ eventCoalescing: true }),
+    provideRouter(routes),
+    provideHttpClient(withInterceptors([apiInterceptor])),
+    provideAnimations()
+  ]
+};
+----
+
+**Geschätzter Zeitaufwand:** 10 Minuten
+
+---
+
+=== Schritt 4.4: Routing konfigurieren
+
+**Was:** Angular Routes für Notizblock-App definieren
+
+**Automatisierungsgrad:** 50% (Struktur vorgegeben, LLM kann generieren)
+
+**Tool:** LLM oder manuell
+
+**Routing-Struktur:**
+
+`src/app/app.routes.ts`:
+
+[source,typescript]
+----
+import { Routes } from '@angular/router';
+
+export const routes: Routes = [
+  {
+    path: '',
+    redirectTo: '/notes',
+    pathMatch: 'full'
+  },
+  {
+    path: 'notes',
+    loadComponent: () => import('./features/notes/note-list/note-list.component')
+      .then(m => m.NoteListComponent),
+    title: 'Notizen'
+  },
+  {
+    path: 'notes/:id',
+    loadComponent: () => import('./features/notes/note-detail/note-detail.component')
+      .then(m => m.NoteDetailComponent),
+    title: 'Notiz Details'
+  },
+  {
+    path: '**',
+    redirectTo: '/notes'
+  }
+];
+----
+
+**Features:**
+- Lazy Loading für Performance - Route Titles für Browser-Tab - Wildcard für 404 Handling
+
+**Geschätzter Zeitaufwand:** 10 Minuten
+
+---
+
+=== Schritt 4.5: Ordnerstruktur erstellen
+
+**Was:** Feature-basierte Projektstruktur anlegen
+
+**Automatisierungsgrad:** 100% (CLI-Befehle)
+
+**Tool:** Angular CLI
+
+**Empfohlene Struktur:**
+
+[source]
+----
+src/app/
+├── core/                          # Singleton Services, Guards, Interceptors
+│   ├── interceptors/
+│   │   ├── api.interceptor.ts     # Base URL + Error Handling
+│   │   └── loading.interceptor.ts # Loading State
+│   ├── guards/
+│   └── services/
+│       └── notification.service.ts # Globale Notifications
+├── features/                      # Feature Modules
+│   └── notes/
+│       ├── note-list/
+│       ├── note-detail/
+│       └── note-form-dialog/
+├── shared/                        # Wiederverwendbare Components/Pipes
+│   ├── components/
+│   │   ├── header/
+│   │   └── footer/
+│   ├── pipes/
+│   └── directives/
+└── api/                           # Generierte API-Clients (von OpenAPI)
+----
+
+**Commands:**
+
+[source,bash]
+----
+# Core Services
+ng generate service core/services/notification --skip-tests
+
+# Interceptors
+ng generate interceptor core/interceptors/api --functional
+ng generate interceptor core/interceptors/loading --functional
+
+# Feature Components (werden in Schritt 4.6 erstellt)
+ng generate component features/notes/note-list --standalone
+ng generate component features/notes/note-detail --standalone
+ng generate component features/notes/note-form-dialog --standalone
+
+# Shared Components
+ng generate component shared/components/header --standalone
+ng generate component shared/components/footer --standalone
+----
+
+**Geschätzter Zeitaufwand:** 5 Minuten
+
+---
+
+=== Schritt 4.6: HTTP Interceptors implementieren
+
+**Was:** Globale HTTP-Interceptors für API-Calls
+
+**Automatisierungsgrad:** 70% (LLM kann Template generieren)
+
+**Tool:** LLM + manuell
+
+==== 4.6.1 API Interceptor (Base URL + Auth)
+
+`src/app/core/interceptors/api.interceptor.ts`:
+
+[source,typescript]
+----
+import { HttpInterceptorFn } from '@angular/common/http';
+import { inject } from '@angular/core';
+import { environment } from '../../../environments/environment';
+
+export const apiInterceptor: HttpInterceptorFn = (req, next) => {
+  // Nur Requests zu relativen URLs modifizieren
+  if (!req.url.startsWith('http')) {
+    const apiReq = req.clone({
+      url: `${environment.apiBaseUrl}${req.url}`
+    });
+    return next(apiReq);
+  }
+  return next(req);
+};
+----
+
+==== 4.6.2 Error Interceptor (Globales Error Handling)
+
+`src/app/core/interceptors/error.interceptor.ts`:
+
+[source,typescript]
+----
+import { HttpInterceptorFn, HttpErrorResponse } from '@angular/common/http';
+import { inject } from '@angular/core';
+import { catchError, throwError } from 'rxjs';
+import { NotificationService } from '../services/notification.service';
+
+export const errorInterceptor: HttpInterceptorFn = (req, next) => {
+  const notificationService = inject(NotificationService);
+
+  return next(req).pipe(
+    catchError((error: HttpErrorResponse) => {
+      let errorMessage = 'Ein unbekannter Fehler ist aufgetreten';
+
+      if (error.error instanceof ErrorEvent) {
+        // Client-seitiger Fehler
+        errorMessage = `Fehler: ${error.error.message}`;
+      } else {
+        // Server-seitiger Fehler
+        errorMessage = error.error?.message || `Server Fehler: ${error.status}`;
+      }
+
+      notificationService.showError(errorMessage);
+      return throwError(() => error);
+    })
+  );
+};
+----
+
+==== 4.6.3 Loading Interceptor (Loading State)
+
+`src/app/core/interceptors/loading.interceptor.ts`:
+
+[source,typescript]
+----
+import { HttpInterceptorFn } from '@angular/common/http';
+import { inject } from '@angular/core';
+import { finalize } from 'rxjs';
+import { LoadingService } from '../services/loading.service';
+
+export const loadingInterceptor: HttpInterceptorFn = (req, next) => {
+  const loadingService = inject(LoadingService);
+
+  loadingService.show();
+
+  return next(req).pipe(
+    finalize(() => loadingService.hide())
+  );
+};
+----
+
+**Geschätzter Zeitaufwand:** 20 Minuten
+
+---
+
+=== Schritt 4.7: Core Services implementieren
+
+**Was:** Globale Singleton Services
+
+**Automatisierungsgrad:** 60% (LLM kann Grundstruktur generieren)
+
+==== 4.7.1 Notification Service (Angular Material Snackbar)
+
+`src/app/core/services/notification.service.ts`:
+
+[source,typescript]
+----
+import { Injectable, inject } from '@angular/core';
+import { MatSnackBar, MatSnackBarConfig } from '@angular/material/snack-bar';
+
+@Injectable({
+  providedIn: 'root'
+})
+export class NotificationService {
+  private snackBar = inject(MatSnackBar);
+
+  private defaultConfig: MatSnackBarConfig = {
+    duration: 3000,
+    horizontalPosition: 'end',
+    verticalPosition: 'top'
+  };
+
+  showSuccess(message: string, action: string = 'OK') {
+    this.snackBar.open(message, action, {
+      ...this.defaultConfig,
+      panelClass: ['snackbar-success']
+    });
+  }
+
+  showError(message: string, action: string = 'OK') {
+    this.snackBar.open(message, action, {
+      ...this.defaultConfig,
+      duration: 5000,
+      panelClass: ['snackbar-error']
+    });
+  }
+
+  showInfo(message: string, action: string = 'OK') {
+    this.snackBar.open(message, action, {
+      ...this.defaultConfig,
+      panelClass: ['snackbar-info']
+    });
+  }
+
+  showWarning(message: string, action: string = 'OK') {
+    this.snackBar.open(message, action, {
+      ...this.defaultConfig,
+      duration: 4000,
+      panelClass: ['snackbar-warning']
+    });
+  }
+}
+----
+
+**Styles für Snackbar** (`src/styles.scss`):
+
+[source,scss]
+----
+.snackbar-success {
+  background-color: #4caf50 !important;
+  color: white !important;
+}
+
+.snackbar-error {
+  background-color: #f44336 !important;
+  color: white !important;
+}
+
+.snackbar-info {
+  background-color: #2196f3 !important;
+  color: white !important;
+}
+
+.snackbar-warning {
+  background-color: #ff9800 !important;
+  color: white !important;
+}
+----
+
+==== 4.7.2 Loading Service (Globaler Loading State)
+
+`src/app/core/services/loading.service.ts`:
+
+[source,typescript]
+----
+import { Injectable, signal } from '@angular/core';
+
+@Injectable({
+  providedIn: 'root'
+})
+export class LoadingService {
+  private loadingCount = 0;
+  public isLoading = signal<boolean>(false);
+
+  show() {
+    this.loadingCount++;
+    this.isLoading.set(true);
+  }
+
+  hide() {
+    this.loadingCount = Math.max(0, this.loadingCount - 1);
+    if (this.loadingCount === 0) {
+      this.isLoading.set(false);
+    }
+  }
+}
+----
+
+**Geschätzter Zeitaufwand:** 15 Minuten
+
+---
+
+=== Schritt 4.8: API Service Wrapper (Optional)
+
+**Was:** Wrapper um generierten API Client für zusätzliche Logik
+
+**Automatisierungsgrad:** 40% (LLM kann Template generieren)
+
+**Warum Optional:**
+- Direkte Nutzung des generierten `NotesService` ist oft ausreichend - Wrapper nützlich für: Caching, zusätzliche Transformationen, Mocking
+
+**Beispiel:**
+
+`src/app/features/notes/services/note.service.ts`:
+
+[source,typescript]
+----
+import { Injectable, inject } from '@angular/core';
+import { Observable } from 'rxjs';
+import { NotesService, NoteDTO } from '../../../api';
+
+@Injectable({
+  providedIn: 'root'
+})
+export class NoteService {
+  private apiService = inject(NotesService);
+
+  getAllNotes(): Observable<NoteDTO[]> {
+    return this.apiService.listAll();
+  }
+
+  getNoteById(id: number): Observable<NoteDTO> {
+    return this.apiService.getById(id);
+  }
+
+  createNote(note: NoteDTO): Observable<NoteDTO> {
+    return this.apiService.create(note);
+  }
+
+  updateNote(id: number, note: NoteDTO): Observable<NoteDTO> {
+    return this.apiService.update(id, note);
+  }
+
+  deleteNote(id: number): Observable<void> {
+    return this.apiService.delete(id);
+  }
+
+  getNoteHistory(id: number): Observable<any[]> {
+    return this.apiService.getHistory(id);
+  }
+}
+----
+
+**Geschätzter Zeitaufwand:** 10 Minuten (wenn benötigt)
+
+---
+
+=== Schritt 4.9: App Layout erstellen
+
+**Was:** Basis-Layout mit Header/Footer
+
+**Automatisierungsgrad:** 50% (LLM kann Grundstruktur generieren)
+
+**Tool:** LLM + manuell
+
+==== 4.9.1 Header Component
+
+`src/app/shared/components/header/header.component.ts`:
+
+[source,typescript]
+----
+import { Component } from '@angular/core';
+import { RouterLink, RouterLinkActive } from '@angular/router';
+import { MatToolbarModule } from '@angular/material/toolbar';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+
+@Component({
+  selector: 'app-header',
+  standalone: true,
+  imports: [RouterLink, RouterLinkActive, MatToolbarModule, MatButtonModule, MatIconModule],
+  template: `
+    <mat-toolbar color="primary">
+      <span class="title">Notizblock</span>
+      <span class="spacer"></span>
+      <a mat-button routerLink="/notes" routerLinkActive="active-link">
+        <mat-icon>note</mat-icon>
+        Notizen
+      </a>
+    </mat-toolbar>
+  `,
+  styles: [`
+    :host {
+      display: block;
+    }
+
+    .title {
+      font-size: 1.5rem;
+      font-weight: 500;
+    }
+
+    .spacer {
+      flex: 1 1 auto;
+    }
+
+    .active-link {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    a {
+      margin-left: 8px;
+    }
+  `]
+})
+export class HeaderComponent {}
+----
+
+==== 4.9.2 App Component Layout
+
+`src/app/app.component.ts`:
+
+[source,typescript]
+----
+import { Component } from '@angular/core';
+import { RouterOutlet } from '@angular/router';
+import { HeaderComponent } from './shared/components/header/header.component';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { LoadingService } from './core/services/loading.service';
+
+@Component({
+  selector: 'app-root',
+  standalone: true,
+  imports: [RouterOutlet, HeaderComponent, MatProgressSpinnerModule],
+  template: `
+    <app-header></app-header>
+    <main class="container">
+      <router-outlet></router-outlet>
+    </main>
+
+    @if (loadingService.isLoading()) {
+      <div class="loading-overlay">
+        <mat-spinner></mat-spinner>
+      </div>
+    }
+  `,
+  styles: [`
+    main.container {
+      padding: 2rem;
+      max-width: 1200px;
+      margin: 0 auto;
+      min-height: calc(100vh - 64px);
+    }
+
+    .loading-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.3);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+    }
+  `]
+})
+export class AppComponent {
+  title = 'Notizblock';
+
+  constructor(public loadingService: LoadingService) {}
+}
+----
+
+**Hinweis:** MatSnackBar wird automatisch als Overlay angezeigt, keine zusätzliche Komponente im Template nötig.
+
+**Geschätzter Zeitaufwand:** 15 Minuten
+
+---
+
+=== Schritt 4.10: Integration testen
+
+**Was:** Grundlegende Integration zwischen Angular und REST API testen
+
+**Automatisierungsgrad:** 20% (Manuelle Tests)
+
+**Test-Schritte:**
+
+1. **Angular Dev Server starten:**
+
+[source,bash]
+----
+cd notizblock-angular
+ng serve
+----
+
+2. **Backend prüfen:**
+
+[source,bash]
+----
+# In separatem Terminal
+cd ..
+mvn quarkus:dev
+----
+
+3. **Browser Tests:**
+- Öffne http://localhost:4200
+- Prüfe Console auf Fehler
+- Prüfe Network-Tab für API-Calls
+- Teste CORS (sollten keine Fehler auftreten)
+
+4. **API Client testen:**
+
+Temporäre Test-Component erstellen:
+
+[source,typescript]
+----
+// In note-list.component.ts (temporär)
+import { Component, inject, OnInit } from '@angular/core';
+import { NotesService } from '../../../api';
+
+@Component({
+  selector: 'app-note-list',
+  standalone: true,
+  template: `<pre>{{ notes | json }}</pre>`
+})
+export class NoteListComponent implements OnInit {
+  private notesService = inject(NotesService);
+  notes: any;
+
+  ngOnInit() {
+    this.notesService.listAll().subscribe({
+      next: (data) => this.notes = data,
+      error: (err) => console.error('API Error:', err)
+    });
+  }
+}
+----
+
+**Erwartetes Ergebnis:**
+- ✅ Keine CORS-Fehler - ✅ API-Calls erfolgreich (Status 200) - ✅ Daten werden korrekt angezeigt
+
+**Geschätzter Zeitaufwand:** 15 Minuten
+
+---
+
+== Zusammenfassung: Automatisierungsgrad
+
+[cols="1,3,1,1",options="header"]
+|===
+|Schritt|Beschreibung|Automatisierung|Zeitaufwand
+
+|4.1
+|Angular Material konfigurieren
+|80%
+|10 Min
+
+|4.2
+|OpenAPI Client generieren
+|95%
+|10 Min
+
+|4.3
+|Environment Configuration
+|30%
+|10 Min
+
+|4.4
+|Routing konfigurieren
+|50%
+|10 Min
+
+|4.5
+|Ordnerstruktur erstellen
+|100%
+|5 Min
+
+|4.6
+|HTTP Interceptors
+|70%
+|20 Min
+
+|4.7
+|Core Services
+|60%
+|15 Min
+
+|4.8
+|API Service Wrapper (optional)
+|40%
+|10 Min
+
+|4.9
+|App Layout erstellen
+|50%
+|15 Min
+
+|4.10
+|Integration testen
+|20%
+|15 Min
+
+|===
+
+**Gesamt-Automatisierung:** ~65%
+
+**Gesamt-Zeitaufwand:** ~120 Minuten (ca. 2 Stunden)
+
+---
+
+== Automatisierungs-Strategie
+
+=== Was kann vollautomatisch?
+
+1. ✅ **npm install** (PrimeNG, Dependencies)
+2. ✅ **OpenAPI Client Generierung**
+3. ✅ **Angular CLI Commands** (ng generate)
+4. ✅ **Ordnerstruktur**
+
+**Tool:** Shell Scripts / npm Scripts
+
+=== Was kann LLM generieren?
+
+1. ✅ **Interceptors** (70-80% fertig)
+2. ✅ **Services** (60-70% fertig)
+3. ✅ **Routing Configuration** (50% fertig)
+4. ✅ **Layout Components** (50% fertig)
+5. ✅ **Environment Files** (Template)
+
+**Tool:** Claude Code / GitHub Copilot
+
+=== Was muss manuell?
+
+1. ⚠️ **Testing & Debugging** (Integration)
+2. ⚠️ **Feintuning** (Styling, UX)
+3. ⚠️ **Projekt-spezifische Logik**
+4. ⚠️ **Code Review**
+
+---
+
+== Empfohlener Workflow
+
+**Option A: Maximale Automatisierung mit LLM**
+
+[source,bash]
+----
+# 1. Setup-Script erstellen (LLM generiert)
+./setup-angular-phase4.sh
+
+# 2. LLM generiert alle Services/Interceptors/Components
+# 3. Manuelle Tests & Anpassungen
+----
+
+**Option B: Schritt-für-Schritt mit LLM-Unterstützung**
+
+[source,bash]
+----
+# Für jeden Schritt:
+# 1. LLM generiert Code
+# 2. Code Review
+# 3. Testen
+# 4. Nächster Schritt
+----
+
+**Empfehlung:** Option B für bessere Kontrolle und Verständnis
+
+---
+
+== Deliverables
+
+Nach Abschluss von Phase 4:
+
+✅ **Funktionierende Angular-App:**
+- Angular Material UI-Bibliothek konfiguriert - Type-Safe API-Client (generiert aus OpenAPI) - Routing konfiguriert mit Lazy Loading - HTTP Interceptors (Error, Loading, API Base URL) - Core Services (Notification mit MatSnackBar, Loading mit Signals) - Basis-Layout (Material Toolbar, Container, Loading Spinner)
+
+✅ **Bereit für Phase 5:**
+- Feature-basierte Ordnerstruktur vorhanden - API-Integration funktioniert (CORS konfiguriert) - Development Environment läuft (ng serve + mvn quarkus:dev) - Material Theme konfiguriert
+
+✅ **Dokumentation:**
+- Alle LLM-Prompts in `migration-llm.adoc`
+- Setup-Anleitung - Troubleshooting Guide
+
+---
+
+== Troubleshooting
+
+=== Häufige Probleme
+
+**1. CORS-Fehler**
+
+[source]
+----
+Lösung: Prüfe application.properties in Quarkus
+Stelle sicher: quarkus.http.cors.origins=http://localhost:4200
+----
+
+**2. OpenAPI Client Import-Fehler**
+
+[source]
+----
+Lösung: Prüfe, ob BASE_PATH in Configuration richtig gesetzt ist
+Environment-Variable verwenden: environment.apiBaseUrl
+----
+
+**3. Material Styles nicht geladen**
+
+[source]
+----
+Lösung: src/styles.scss prüfen
+@import '@angular/material/prebuilt-themes/indigo-pink.css';
+Material Icons und Roboto Font müssen geladen sein
+----
+
+**4. Interceptors werden nicht ausgeführt**
+
+[source]
+----
+Lösung: app.config.ts prüfen
+withInterceptors([...]) muss in provideHttpClient() sein
+----
+
+---
+
+== Nächste Schritte
+
+Nach Abschluss von Phase 4:
+
+➡️ **Phase 5: UI-Komponenten Migration**
+- JSF Backing Beans zu Angular Components - XHTML zu Angular Templates - PrimeFaces zu Angular Material Komponenten
+* p:dataTable → mat-table
+* p:dialog → mat-dialog
+* p:button → mat-button
+* p:inputText → mat-form-field + matInput
+

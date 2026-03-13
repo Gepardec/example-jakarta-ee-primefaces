@@ -1,0 +1,63 @@
+@if (isLoading()) {
+  <div class="loading-container">
+    <p>Lade Notiz...</p>
+  </div>
+} @else if (note()) {
+  <div class="detail-container">
+    <!-- Header Actions -->
+    <div class="header-actions">
+      <button mat-raised-button (click)="goBack()">
+        <mat-icon>arrow_back</mat-icon>
+        Zurück zur Übersicht
+      </button>
+    </div>
+
+    <!-- Note Detail Card -->
+    <mat-card class="note-card">
+      <mat-card-header>
+        <mat-card-title>{{ note()?.title }}</mat-card-title>
+      </mat-card-header>
+
+      <mat-card-content>
+        <!-- Content Section -->
+        <div class="content-section">
+          <h3>Inhalt</h3>
+          <div class="content-text">
+            {{ note()?.content }}
+          </div>
+        </div>
+
+        <mat-divider></mat-divider>
+
+        <!-- Metadata Section -->
+        <div class="metadata-section">
+          <div class="metadata-item">
+            <mat-icon>event</mat-icon>
+            <div class="metadata-content">
+              <strong>Erstellt am:</strong>
+              <span>{{ formatDate(note()?.createdAt) }}</span>
+            </div>
+          </div>
+
+          @if (note()?.updatedAt && note()?.updatedAt !== note()?.createdAt) {
+            <div class="metadata-item">
+              <mat-icon>update</mat-icon>
+              <div class="metadata-content">
+                <strong>Aktualisiert am:</strong>
+                <span>{{ formatDate(note()?.updatedAt) }}</span>
+              </div>
+            </div>
+          }
+
+          <div class="metadata-item">
+            <mat-icon>tag</mat-icon>
+            <div class="metadata-content">
+              <strong>ID:</strong>
+              <span>{{ note()?.id }}</span>
+            </div>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+}

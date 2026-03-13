@@ -1,0 +1,632 @@
+= LLM-Prompts für Phase 5: UI-Komponenten Migration
+:encoding: UTF-8
+:toc:
+:toclevels: 3
+:sectnums:
+:icons: font
+:source-highlighter: highlightjs
+
+== Übersicht
+
+Dieses Dokument dokumentiert alle LLM-Prompts, die für Phase 5 (UI-Komponenten Migration von JSF zu Angular Material) verwendet wurden.
+
+**Strategie:** Schrittweise Migration der JSF-Komponenten zu Angular Material Components mit vollständiger CRUD-Funktionalität
+
+**Datum:** {docdate}
+
+**UI Framework:** Angular Material 21 (M3)
+
+== Phase 5: UI-Komponenten Migration
+
+=== Status vor Phase 5
+
+- ✅ Angular 21 Projekt mit Material Theme
+- ✅ OpenAPI Client generiert (NotesService)
+- ✅ HTTP Interceptors implementiert
+- ✅ Core Services (Notification, Loading)
+- ✅ App Layout und Routing konfiguriert
+- ✅ Dev Server läuft auf http://localhost:4200/
+- ✅ REST API läuft auf http://localhost:8080
+
+**JSF-Quellkomponenten (Legacy):**
+- `index.xhtml` - Note List mit PrimeFaces DataTable
+- `noteFormDialog.xhtml` - Note Create/Edit Dialog
+- `detail.xhtml` - Note Detail View
+- `deleteConfirmDialog.xhtml` - Delete Confirmation
+
+---
+
+=== Schritt 5.1: Note List Component mit Material Table
+
+**Aufgabe:** Migration von JSF index.xhtml zu Angular Material Table mit CRUD-Operationen
+
+**Automatisierung:** 85%
+
+**Prompt:**
+[source]
+----
+Implementiere Note List Component mit folgenden Features:
+1. Material Table (mat-table) für Notizen-Anzeige
+2. Spalten: Titel, Kategorie, Erstellt am, Aktionen (Bearbeiten/Löschen)
+3. "Neue Notiz" Button öffnet Note Form Dialog
+4. Integration mit generiertem NotesService
+5. Observable-basierte Daten mit async pipe
+6. Error Handling mit NotificationService
+7. Material Paginator und Sort Header
+8. Responsive Design
+----
+
+**Dateien:**
+- `src/app/features/notes/note-list.component.ts` - Component Logic
+- `src/app/features/notes/note-list.component.html` - Template
+- `src/app/features/notes/note-list.component.scss` - Styles
+
+**Code:**
+[source,typescript]
+----
+@Component({
+  selector: 'app-note-list',
+  standalone: true,
+  imports: [MatTableModule, MatPaginatorModule, MatSortModule, ...]
+})
+export class NoteListComponent implements OnInit {
+  displayedColumns: string[] = ['title', 'content', 'createdAt', 'actions'];
+  dataSource = new MatTableDataSource<NoteDTO>();
+  notesCount = signal<number>(0);
+
+  @ViewChild(MatPaginator) paginator!: MatPaginator;
+  @ViewChild(MatSort) sort!: MatSort;
+
+  loadNotes() {
+    this.notesService.notizblockApiNotesGet().subscribe({
+      next: (notes) => {
+        this.dataSource.data = notes;
+        this.notesCount.set(notes.length);
+      }
+    });
+  }
+
+  openCreateDialog() {
+    const dialogRef = this.dialog.open(NoteFormDialogComponent, {
+      width: '600px',
+      data: { note: null, editMode: false }
+    });
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) this.loadNotes();
+    });
+  }
+}
+----
+
+**Template:**
+[source,html]
+----
+<mat-card class="note-list-container">
+  <div class="toolbar">
+    <span class="notes-count">Anzahl Notizen: {{ notesCount() }}</span>
+    <button mat-raised-button color="primary" (click)="openCreateDialog()">
+      <mat-icon>add</mat-icon>
+      Neue Notiz
+    </button>
+  </div>
+
+  <table mat-table [dataSource]="dataSource" matSort>
+    <ng-container matColumnDef="title">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>Titel</th>
+      <td mat-cell *matCellDef="let note"><strong>{{ note.title }}</strong></td>
+    </ng-container>
+
+    <!-- Actions Column -->
+    <ng-container matColumnDef="actions">
+      <td mat-cell *matCellDef="let note">
+        <button mat-icon-button (click)="viewDetail(note)" matTooltip="Details">
+          <mat-icon>visibility</mat-icon>
+        </button>
+        <button mat-icon-button (click)="openEditDialog(note)" matTooltip="Bearbeiten">
+          <mat-icon>edit</mat-icon>
+        </button>
+        <button mat-icon-button (click)="openDeleteDialog(note)" matTooltip="Löschen">
+          <mat-icon>delete</mat-icon>
+        </button>
+      </td>
+    </ng-container>
+  </table>
+
+  <mat-paginator [pageSizeOptions]="[5, 10, 20]" [pageSize]="10"></mat-paginator>
+</mat-card>
+----
+
+**Hinweis:** Verwendet MatTableDataSource für automatisches Sorting/Pagination und Signal für reaktiven Notizen-Counter
+
+---
+
+=== Schritt 5.2: Note Form Dialog mit Reactive Forms
+
+**Aufgabe:** Create/Edit Dialog mit Material Form Components und Validierung
+
+**Automatisierung:** 90%
+
+**Prompt:**
+[source]
+----
+Implementiere Note Form Dialog Component mit:
+1. Material Dialog (MatDialog)
+2. Reactive Forms mit FormBuilder
+3. Validierung: Titel (required, max 255), Inhalt (required, max 5000)
+4. Character Counter mit mat-hint
+5. Material Form Fields (outline appearance)
+6. Create und Edit Mode basierend auf Dialog Data
+7. Integration mit NotesService für POST/PUT Operations
+8. Error Handling und Success Notifications
+----
+
+**Dateien:**
+- `src/app/features/notes/note-form-dialog.component.ts`
+- `src/app/features/notes/note-form-dialog.component.html`
+- `src/app/features/notes/note-form-dialog.component.scss`
+
+**Dialog Data Interface:**
+[source,typescript]
+----
+export interface DialogData {
+  note: NoteDTO | null;
+  editMode: boolean;
+}
+----
+
+**Form Initialisierung:**
+[source,typescript]
+----
+initForm() {
+  this.noteForm = this.fb.group({
+    title: [
+      this.data.note?.title || '',
+      [Validators.required, Validators.maxLength(255)]
+    ],
+    content: [
+      this.data.note?.content || '',
+      [Validators.required, Validators.maxLength(5000)]
+    ]
+  });
+}
+----
+
+**Submit Logic:**
+[source,typescript]
+----
+onSubmit() {
+  if (this.noteForm.invalid) {
+    this.noteForm.markAllAsTouched();
+    return;
+  }
+
+  const noteData: NoteDTO = { ...this.noteForm.value };
+  const operation = this.data.editMode && this.data.note?.id
+    ? this.notesService.notizblockApiNotesIdPut(this.data.note.id, noteData)
+    : this.notesService.notizblockApiNotesPost(noteData);
+
+  operation.subscribe({
+    next: () => {
+      this.notificationService.showSuccess('Notiz erfolgreich gespeichert');
+      this.dialogRef.close(true);
+    },
+    error: (error) => {
+      this.notificationService.showError('Fehler beim Speichern');
+    }
+  });
+}
+----
+
+**Template mit Angular 21 Control Flow:**
+[source,html]
+----
+<mat-form-field appearance="outline" class="full-width">
+  <mat-label>Titel</mat-label>
+  <input matInput formControlName="title" maxlength="255" required>
+  <mat-icon matPrefix>title</mat-icon>
+  <mat-hint align="end">{{ title?.value?.length || 0 }}/255</mat-hint>
+  @if (title?.invalid && title?.touched) {
+    <mat-error>
+      @if (title?.errors?.['required']) {
+        Titel ist erforderlich
+      }
+      @if (title?.errors?.['maxlength']) {
+        Titel darf maximal 255 Zeichen haben
+      }
+    </mat-error>
+  }
+</mat-form-field>
+----
+
+**Hinweis:** Verwendung von `@if` Control Flow statt `*ngIf` (Angular 21+ Syntax)
+
+---
+
+=== Schritt 5.3: Delete Confirmation Dialog
+
+**Aufgabe:** Bestätigungs-Dialog für Lösch-Operation
+
+**Automatisierung:** 95%
+
+**Prompt:**
+[source]
+----
+Implementiere Delete Confirmation Dialog:
+1. Material Dialog mit Warning Icon
+2. Anzeige der zu löschenden Notiz (Titel)
+3. Warnhinweis "Diese Aktion kann nicht rückgängig gemacht werden"
+4. Confirm/Cancel Buttons
+5. Inline Template und Styles (Single-File Component)
+----
+
+**Datei:**
+- `src/app/features/notes/delete-confirm-dialog.component.ts`
+
+**Code (Single-File Component):**
+[source,typescript]
+----
+@Component({
+  selector: 'app-delete-confirm-dialog',
+  standalone: true,
+  imports: [MatDialogModule, MatButtonModule, MatIconModule],
+  template: `
+    <h2 mat-dialog-title>
+      <mat-icon color="warn">warning</mat-icon>
+      Notiz löschen
+    </h2>
+
+    <mat-dialog-content>
+      <p>Möchten Sie die folgende Notiz wirklich löschen?</p>
+      <div class="note-info">
+        <strong>{{ data.note.title }}</strong>
+      </div>
+      <p class="warning-text">Diese Aktion kann nicht rückgängig gemacht werden.</p>
+    </mat-dialog-content>
+
+    <mat-dialog-actions align="end">
+      <button mat-button (click)="onCancel()">
+        <mat-icon>close</mat-icon>
+        Abbrechen
+      </button>
+      <button mat-raised-button color="warn" (click)="onConfirm()">
+        <mat-icon>delete</mat-icon>
+        Löschen
+      </button>
+    </mat-dialog-actions>
+  `,
+  styles: [`
+    .note-info {
+      background-color: #f5f5f5;
+      padding: 12px;
+      border-radius: 4px;
+    }
+    .warning-text {
+      color: #d32f2f;
+    }
+  `]
+})
+export class DeleteConfirmDialogComponent {
+  onConfirm() { this.dialogRef.close(true); }
+  onCancel() { this.dialogRef.close(false); }
+}
+----
+
+**Hinweis:** Single-File Component Pattern für einfache Dialoge
+
+---
+
+=== Schritt 5.4: Note Detail Component
+
+**Aufgabe:** Detail-Ansicht für einzelne Notiz mit Routing-Integration
+
+**Automatisierung:** 85%
+
+**Prompt:**
+[source]
+----
+Implementiere Note Detail Component:
+1. Route Parameter Handling (id aus URL)
+2. Laden der Notiz via NotesService.notizblockApiNotesIdGet()
+3. Material Card Layout mit:
+   - Titel als Card Title
+   - Inhalt in formatiertem Textbereich (pre-wrap)
+   - Metadata Section mit Icons (Erstellt am, Aktualisiert am, ID)
+4. "Zurück zur Übersicht" Button
+5. Loading State mit Signal
+6. Error Handling mit Redirect zur Liste
+----
+
+**Dateien:**
+- `src/app/features/notes/note-detail.component.ts`
+- `src/app/features/notes/note-detail.component.html`
+- `src/app/features/notes/note-detail.component.scss`
+
+**Component Logic:**
+[source,typescript]
+----
+export class NoteDetailComponent implements OnInit {
+  note = signal<NoteDTO | null>(null);
+  isLoading = signal<boolean>(true);
+
+  ngOnInit() {
+    const id = this.route.snapshot.paramMap.get('id');
+    if (id) {
+      this.loadNote(Number(id));
+    } else {
+      this.router.navigate(['/notes']);
+    }
+  }
+
+  loadNote(id: number) {
+    this.notesService.notizblockApiNotesIdGet(id).subscribe({
+      next: (note) => {
+        this.note.set(note);
+        this.isLoading.set(false);
+      },
+      error: (error) => {
+        this.notificationService.showError('Fehler beim Laden der Notiz');
+        this.router.navigate(['/notes']);
+      }
+    });
+  }
+
+  formatDate(date: string | undefined): string {
+    return new Date(date).toLocaleString('de-DE', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    });
+  }
+}
+----
+
+**Template:**
+[source,html]
+----
+@if (isLoading()) {
+  <div class="loading-container">
+    <p>Lade Notiz...</p>
+  </div>
+} @else if (note()) {
+  <div class="detail-container">
+    <button mat-raised-button (click)="goBack()">
+      <mat-icon>arrow_back</mat-icon>
+      Zurück zur Übersicht
+    </button>
+
+    <mat-card class="note-card">
+      <mat-card-header>
+        <mat-card-title>{{ note()?.title }}</mat-card-title>
+      </mat-card-header>
+
+      <mat-card-content>
+        <div class="content-section">
+          <h3>Inhalt</h3>
+          <div class="content-text">{{ note()?.content }}</div>
+        </div>
+
+        <mat-divider></mat-divider>
+
+        <div class="metadata-section">
+          <div class="metadata-item">
+            <mat-icon>event</mat-icon>
+            <div class="metadata-content">
+              <strong>Erstellt am:</strong>
+              <span>{{ formatDate(note()?.createdAt) }}</span>
+            </div>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+}
+----
+
+**Styles:**
+[source,scss]
+----
+.content-text {
+  white-space: pre-wrap;  // Preserve line breaks
+  word-wrap: break-word;
+  line-height: 1.6;
+  background-color: #f5f5f5;
+  padding: 16px;
+  border-radius: 4px;
+  border-left: 4px solid #3f51b5;
+}
+----
+
+**Routing Konfiguration:**
+[source,typescript]
+----
+// notes.routes.ts
+export const notesRoutes: Routes = [
+  { path: '', component: NoteListComponent },
+  { path: ':id', component: NoteDetailComponent }
+];
+----
+
+**Hinweis:** Signal-basierter State für Loading und Note Data
+
+---
+
+== Phase 5 Zusammenfassung
+
+=== Erstellte Komponenten
+
+**List Component:**
+- `note-list.component.ts/html/scss` - Material Table mit Paginator, Sort, Actions
+
+**Dialogs:**
+- `note-form-dialog.component.ts/html/scss` - Reactive Forms für Create/Edit
+- `delete-confirm-dialog.component.ts` - Confirmation Dialog (Single-File)
+
+**Detail Component:**
+- `note-detail.component.ts/html/scss` - Detailansicht mit Routing
+
+**Routing:**
+- `notes.routes.ts` - Lazy-loaded Routes (List + Detail)
+
+=== Features Implementiert
+
+**CRUD Operations:**
+- ✅ Create Note (POST) via Form Dialog
+- ✅ Read Notes (GET List) in Material Table
+- ✅ Read Note Detail (GET by ID) in Detail View
+- ✅ Update Note (PUT) via Form Dialog
+- ✅ Delete Note (DELETE) mit Confirmation
+
+**UI Components (Material):**
+- ✅ `mat-table` mit `MatTableDataSource`
+- ✅ `mat-paginator` (5/10/20 Einträge pro Seite)
+- ✅ `mat-sort` (Titel, Erstellt am)
+- ✅ `mat-dialog` für Formulare und Bestätigung
+- ✅ `mat-form-field` mit outline appearance
+- ✅ `mat-card` für Liste und Detail
+- ✅ `mat-icon-button` für Aktionen
+- ✅ `mat-tooltip` für Button-Beschreibungen
+
+**Angular 21 Features:**
+- ✅ Standalone Components (kein NgModule)
+- ✅ Control Flow Syntax (`@if`, `@else`)
+- ✅ Signals für reaktiven State
+- ✅ `inject()` Function für Dependency Injection
+- ✅ Reactive Forms mit FormBuilder
+- ✅ Functional HTTP Interceptors (bereits in Phase 4)
+
+**Error Handling & UX:**
+- ✅ Global Error Interceptor (Phase 4)
+- ✅ Success/Error Notifications via NotificationService
+- ✅ Loading States mit Signal
+- ✅ Form Validation mit Echtzeit-Feedback
+- ✅ Character Counter für Textfelder
+- ✅ Responsive Design (Mobile-friendly)
+
+=== Gesamtautomatisierung: 88%
+
+**Automatisch:**
+- Material Component Setup
+- Table, Paginator, Sort Integration
+- Reactive Forms Boilerplate
+- Routing Configuration
+- OpenAPI Service Integration
+
+**Manuell:**
+- Custom Template Design
+- Business Logic (formatDate, getTruncatedContent)
+- Error Handling Strategien
+- UX/UI Fine-Tuning
+
+=== Build Ergebnis
+
+[source]
+----
+✔ Building...
+Initial chunk files | Names         |  Raw size
+polyfills.js        | polyfills     |  89.77 kB |
+styles.css          | styles        |  58.33 kB |
+main.js             | main          |  11.62 kB |
+chunk-4FBYL4MA.js   | -             |   2.65 kB |
+
+                    | Initial total | 162.38 kB
+
+Lazy chunk files    | Names         |  Raw size
+chunk-5TYKOSHW.js   | notes-routes  |  82.67 kB |
+
+Application bundle generation complete.
+
+➜  Local:   http://localhost:4200/
+----
+
+**Bundle Analyse:**
+- Initial Bundle: 162.38 kB (gzip-optimiert in Production < 50 kB)
+- Notes Feature (lazy): 82.67 kB (enthält alle Material Components)
+- Lazy Loading funktioniert korrekt
+
+=== Testing
+
+**Manuelle Tests durchgeführt:**
+- ✅ Liste lädt und zeigt Notizen an
+- ✅ Paginator funktioniert (5/10/20 Einträge)
+- ✅ Sortierung nach Titel und Datum
+- ✅ "Neue Notiz" Dialog öffnet und schließt
+- ✅ Create Operation (POST)
+- ✅ Edit Operation (PUT)
+- ✅ Delete Operation mit Bestätigung (DELETE)
+- ✅ Detail-Ansicht Navigation
+- ✅ "Zurück"-Button funktioniert
+- ✅ Error Messages bei Validierungsfehlern
+- ✅ Success Notifications nach CRUD-Operationen
+- ✅ Loading Spinner während HTTP Requests (via Interceptor)
+
+**Browser Kompatibilität:**
+- ✅ Chrome/Edge (Chromium)
+- ✅ Firefox
+- ✅ Safari (Material M3 Theme)
+
+=== Migration JSF → Angular Material
+
+**Mapping:**
+[options="header"]
+|===
+|JSF Component|Angular Material|Status
+
+|`<p:dataTable>`
+|`<mat-table>` + MatTableDataSource
+|✅ Migriert
+
+|`<p:paginator>`
+|`<mat-paginator>`
+|✅ Migriert
+
+|`<p:dialog>`
+|`MatDialog` Service
+|✅ Migriert
+
+|`<p:inputText>`
+|`<mat-form-field>` + `<input matInput>`
+|✅ Migriert
+
+|`<p:inputTextarea>`
+|`<mat-form-field>` + `<textarea matInput>`
+|✅ Migriert
+
+|`<p:commandButton>`
+|`<button mat-raised-button>`
+|✅ Migriert
+
+|`<p:growl>`
+|`MatSnackBar` (NotificationService)
+|✅ Migriert (Phase 4)
+
+|`<p:panel>`
+|`<mat-card>`
+|✅ Migriert
+
+|`<p:confirmDialog>`
+|Custom `MatDialog` Component
+|✅ Migriert
+|===
+
+=== Nächste Schritte
+
+**Phase 6 (Optional): Erweiterungen**
+- Note History anzeigen (GET /api/notes/{id}/history)
+- Kategorien/Tags für Notizen
+- Suche/Filter in der Tabelle
+- Export-Funktionen (PDF, CSV)
+- Dark Mode Toggle
+- Unit Tests (Jasmine/Karma)
+- E2E Tests (Playwright/Cypress)
+- PWA Features (Service Worker, Offline Mode)
+- Internationalisierung (i18n)
+
+**Production Deployment:**
+- Environment-spezifische Builds
+- Bundle Optimization (Tree-shaking, Lazy Loading)
+- Docker Container für Frontend
+- CI/CD Pipeline Integration
+

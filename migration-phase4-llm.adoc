@@ -1,0 +1,477 @@
+= LLM-Prompts für Phase 4: Angular Projekt Setup
+:encoding: UTF-8
+:toc:
+:toclevels: 3
+:sectnums:
+:icons: font
+:source-highlighter: highlightjs
+
+== Übersicht
+
+Dieses Dokument dokumentiert alle LLM-Prompts, die für Phase 4 (Angular Projekt Setup mit Angular Material) verwendet wurden.
+
+**Strategie:** Schrittweise Umsetzung mit LLM-Unterstützung
+
+**Datum:** {docdate}
+
+**UI Framework:** Angular Material (statt PrimeNG)
+
+== Phase 4: Angular Projekt Setup
+
+=== Status vor Phase 4
+
+- ✅ Angular 21 Projekt existiert (`notizblock-angular/`)
+- ✅ Angular Material installiert (`@angular/material` ^21.2.1)
+- ✅ REST API läuft auf http://localhost:8080
+- ✅ OpenAPI Spec verfügbar (`openapi.json`)
+
+---
+
+=== Schritt 4.1: Angular Material Theme konfigurieren
+
+**Aufgabe:** Material Theme Setup und Global Styles
+
+**Automatisierung:** 100% (Standard-Konfiguration)
+
+**Prompt:** Kein LLM-Prompt nötig - Standard Material Theme Setup
+
+**Dateien:**
+- `src/styles.scss` - Material Theme und Global Styles
+
+**Änderungen:**
+- Material Core importiert
+- Custom Color Palette (Indigo Primary, Pink Accent)
+- Typography Config
+- Roboto Font und Material Icons
+- Custom Snackbar Styles (Success, Error, Info, Warning)
+
+---
+
+=== Schritt 4.2: OpenAPI Client generieren
+
+**Aufgabe:** TypeScript Angular Services aus OpenAPI Specification generieren
+
+**Automatisierung:** 95%
+
+**Prompt:** Kein LLM-Prompt nötig - Automatische Codegenerierung
+
+**Commands:**
+[source,bash]
+----
+npm install --save-dev @openapitools/openapi-generator-cli
+
+npx @openapitools/openapi-generator-cli generate \
+    -i ../openapi.json \
+    -g typescript-angular \
+    -o src/app/api \
+    --additional-properties=ngVersion=21,providedInRoot=true,withInterfaces=true
+----
+
+**Generierte Dateien:**
+[source]
+----
+src/app/api/
+├── api/
+│   ├── api.ts
+│   ├── notes.service.ts           # NotesService mit allen Endpoints
+│   └── notes.serviceInterface.ts
+├── model/
+│   ├── models.ts
+│   └── noteDTO.ts                 # NoteDTO Model
+├── api.module.ts
+├── configuration.ts
+├── index.ts                       # Barrel Export
+└── provide-api.ts                 # Provider für Standalone Components
+----
+
+**Generierte Methoden in NotesService:**
+- `notizblockApiNotesGet()` - GET /api/notes
+- `notizblockApiNotesPost(noteDTO)` - POST /api/notes
+- `notizblockApiNotesIdGet(id)` - GET /api/notes/{id}
+- `notizblockApiNotesIdPut(id, noteDTO)` - PUT /api/notes/{id}
+- `notizblockApiNotesIdDelete(id)` - DELETE /api/notes/{id}
+- `notizblockApiNotesIdHistoryGet(id)` - GET /api/notes/{id}/history
+
+**Hinweis:** Methoden-Namen sind auto-generiert, da operationId in OpenAPI fehlt. In Phase 3 könnten wir die REST Resource mit `@Operation(operationId = "...")` ergänzen für bessere Namen.
+
+---
+
+=== Schritt 4.3: Environment Configuration
+
+**Aufgabe:** API Base URL Konfiguration für Development und Production
+
+**Automatisierung:** 100%
+
+**Prompt:**
+[source]
+----
+Erstelle Environment-Konfiguration mit API Base URL für Development (http://localhost:8080) und Production.
+----
+
+**Dateien:**
+- `src/environments/environment.ts` - Development Config
+- `src/environments/environment.prod.ts` - Production Config
+
+**Code:**
+[source,typescript]
+----
+// environment.ts
+export const environment = {
+  production: false,
+  apiBaseUrl: 'http://localhost:8080'
+};
+----
+
+---
+
+=== Schritt 4.4: HTTP Interceptors
+
+**Aufgabe:** Functional HTTP Interceptors für API Base URL, Loading State, und Error Handling
+
+**Automatisierung:** 95%
+
+**Prompt:**
+[source]
+----
+Implementiere drei functional HTTP Interceptors (Angular 21+ Pattern):
+1. API Interceptor: Fügt automatisch API Base URL zu relativen URLs hinzu
+2. Loading Interceptor: Zeigt/versteckt Loading-Spinner während HTTP Requests
+3. Error Interceptor: Globale Fehlerbehandlung mit Notification Service
+----
+
+**Dateien:**
+- `src/app/core/interceptors/api.interceptor.ts`
+- `src/app/core/interceptors/loading.interceptor.ts`
+- `src/app/core/interceptors/error.interceptor.ts`
+
+**API Interceptor:**
+[source,typescript]
+----
+export const apiInterceptor: HttpInterceptorFn = (req, next) => {
+  if (!req.url.startsWith('http')) {
+    const apiReq = req.clone({
+      url: `${environment.apiBaseUrl}${req.url}`
+    });
+    return next(apiReq);
+  }
+  return next(req);
+};
+----
+
+**Loading Interceptor:**
+[source,typescript]
+----
+export const loadingInterceptor: HttpInterceptorFn = (req, next) => {
+  const loadingService = inject(LoadingService);
+  loadingService.show();
+  return next(req).pipe(
+    finalize(() => loadingService.hide())
+  );
+};
+----
+
+**Error Interceptor:**
+[source,typescript]
+----
+export const errorInterceptor: HttpInterceptorFn = (req, next) => {
+  const notificationService = inject(NotificationService);
+  return next(req).pipe(
+    catchError((error: HttpErrorResponse) => {
+      let errorMessage = 'Ein unbekannter Fehler ist aufgetreten';
+      if (error.error instanceof ErrorEvent) {
+        errorMessage = `Fehler: ${error.error.message}`;
+      } else {
+        errorMessage = error.error?.message || `Server Fehler: ${error.status}`;
+      }
+      notificationService.showError(errorMessage);
+      return throwError(() => error);
+    })
+  );
+};
+----
+
+**Hinweis:** Verwendung von Functional Interceptors statt klassenbasierten Interceptors (Angular 15+ Best Practice)
+
+---
+
+=== Schritt 4.5: Core Services
+
+**Aufgabe:** NotificationService und LoadingService mit Angular Signals
+
+**Automatisierung:** 95%
+
+**Prompt:**
+[source]
+----
+Implementiere zwei Core Services:
+1. NotificationService: Wrapper für MatSnackBar mit Methoden für Success/Error/Info/Warning
+2. LoadingService: Signal-basierter Loading State mit Counter für parallele Requests
+----
+
+**Dateien:**
+- `src/app/core/services/notification.service.ts`
+- `src/app/core/services/loading.service.ts`
+
+**NotificationService:**
+[source,typescript]
+----
+@Injectable({ providedIn: 'root' })
+export class NotificationService {
+  private snackBar = inject(MatSnackBar);
+
+  showSuccess(message: string, action: string = 'OK') {
+    this.snackBar.open(message, action, {
+      duration: 5000,
+      panelClass: ['snackbar-success']
+    });
+  }
+
+  showError(message: string, action: string = 'OK') {
+    this.snackBar.open(message, action, {
+      duration: 7000,
+      panelClass: ['snackbar-error']
+    });
+  }
+}
+----
+
+**LoadingService mit Signals:**
+[source,typescript]
+----
+@Injectable({ providedIn: 'root' })
+export class LoadingService {
+  public isLoading = signal<boolean>(false);
+  private loadingCount = 0;
+
+  show() {
+    this.loadingCount++;
+    this.isLoading.set(true);
+  }
+
+  hide() {
+    this.loadingCount--;
+    if (this.loadingCount <= 0) {
+      this.loadingCount = 0;
+      this.isLoading.set(false);
+    }
+  }
+}
+----
+
+**Hinweis:** Signal-basierter State ermöglicht reaktives UI ohne RxJS Subscriptions
+
+---
+
+=== Schritt 4.6: App Layout & Routing
+
+**Aufgabe:** Header Component, App Layout, und Lazy-Loaded Routing
+
+**Automatisierung:** 90%
+
+**Prompt:**
+[source]
+----
+1. Erstelle Header Component mit Material Toolbar und Navigation
+2. Aktualisiere App Component mit Header, Router Outlet, und Loading Overlay
+3. Konfiguriere Lazy-Loaded Routing für Notes Feature mit Default Redirect
+4. Erstelle Notes Feature Structure mit Placeholder Component
+----
+
+**Dateien:**
+- `src/app/shared/components/header.component.ts`
+- `src/app/app.component.ts` / `.html` / `.scss`
+- `src/app/app.routes.ts`
+- `src/app/features/notes/note-list.component.ts`
+- `src/app/features/notes/notes.routes.ts`
+
+**Header Component:**
+[source,typescript]
+----
+@Component({
+  selector: 'app-header',
+  standalone: true,
+  imports: [RouterLink, RouterLinkActive, MatToolbarModule, MatButtonModule, MatIconModule],
+  template: `
+    <mat-toolbar color="primary">
+      <span class="title">Notizblock</span>
+      <span class="spacer"></span>
+      <a mat-button routerLink="/notes" routerLinkActive="active-link">
+        <mat-icon>note</mat-icon>
+        Notizen
+      </a>
+    </mat-toolbar>
+  `
+})
+export class HeaderComponent {}
+----
+
+**App Component:**
+[source,typescript]
+----
+@Component({
+  selector: 'app-root',
+  imports: [RouterOutlet, HeaderComponent, MatProgressSpinnerModule],
+  template: `
+    <app-header />
+    <div class="app-container">
+      <router-outlet />
+    </div>
+    @if (loadingService.isLoading()) {
+      <div class="loading-overlay">
+        <mat-spinner diameter="60"></mat-spinner>
+      </div>
+    }
+  `
+})
+export class AppComponent {
+  loadingService = inject(LoadingService);
+}
+----
+
+**Routing Configuration:**
+[source,typescript]
+----
+// app.routes.ts
+export const routes: Routes = [
+  {
+    path: '',
+    redirectTo: '/notes',
+    pathMatch: 'full'
+  },
+  {
+    path: 'notes',
+    loadChildren: () => import('./features/notes/notes.routes').then(m => m.notesRoutes)
+  }
+];
+----
+
+**App Config mit Interceptors:**
+[source,typescript]
+----
+export const appConfig: ApplicationConfig = {
+  providers: [
+    provideZoneChangeDetection({ eventCoalescing: true }),
+    provideRouter(routes),
+    provideHttpClient(
+      withInterceptors([apiInterceptor, loadingInterceptor, errorInterceptor])
+    ),
+    provideAnimationsAsync()
+  ]
+};
+----
+
+**Hinweis:** Verwendung von Angular 21 Control Flow Syntax (`@if`) statt `*ngIf`
+
+---
+
+=== Schritt 4.7: Integration Testing & Theme Fix
+
+**Aufgabe:** Angular Dev Server starten und Material 3 Theme Kompatibilität sicherstellen
+
+**Automatisierung:** 80%
+
+**Prompt:**
+[source]
+----
+Starte Angular Dev Server und behebe Material Theme Fehler für Angular 21 Kompatibilität.
+Angular 21 verwendet Material 3 (M3) Theme API.
+----
+
+**Problem:** Initial build failed mit "Undefined function: mat.define-palette()"
+
+**Ursache:** Angular 21 + Material 21 verwendet Material 3 (M3) Theme API statt Legacy API
+
+**Lösung:** Theme-Konfiguration auf M3 API migriert
+
+**Vorher (Legacy API):**
+[source,scss]
+----
+$notizblock-primary: mat.define-palette(mat.$indigo-palette);
+$notizblock-accent: mat.define-palette(mat.$pink-palette);
+
+$notizblock-theme: mat.define-light-theme((
+  color: (
+    primary: $notizblock-primary,
+    accent: $notizblock-accent,
+  )
+));
+----
+
+**Nachher (M3 API):**
+[source,scss]
+----
+$notizblock-theme: mat.define-theme((
+  color: (
+    theme-type: light,
+    primary: mat.$blue-palette,
+    tertiary: mat.$violet-palette,
+  ),
+));
+
+html {
+  @include mat.all-component-themes($notizblock-theme);
+}
+----
+
+**Ergebnis:**
+[source]
+----
+✔ Building...
+Application bundle generation complete. [0.501 seconds]
+
+Initial chunk files | Names         |  Raw size
+polyfills.js        | polyfills     |  89.77 kB |
+styles.css          | styles        |  58.33 kB |
+main.js             | main          |  13.41 kB |
+
+Lazy chunk files    | Names         |  Raw size
+chunk-RP6RBNUG.js   | notes-routes  |   2.98 kB |
+
+➜  Local:   http://localhost:4200/
+----
+
+**Hinweis:** Material 3 Theme API unterscheidet sich signifikant von Legacy API
+
+---
+
+== Phase 4 Zusammenfassung
+
+=== Erstellte Dateien
+
+**Core Services:**
+- `src/app/core/services/notification.service.ts`
+- `src/app/core/services/loading.service.ts`
+
+**Interceptors:**
+- `src/app/core/interceptors/api.interceptor.ts`
+- `src/app/core/interceptors/loading.interceptor.ts`
+- `src/app/core/interceptors/error.interceptor.ts`
+
+**Components:**
+- `src/app/shared/components/header.component.ts`
+- `src/app/features/notes/note-list.component.ts` (Placeholder)
+
+**Configuration:**
+- `src/environments/environment.ts`
+- `src/environments/environment.prod.ts`
+- `src/app/app.routes.ts`
+- `src/app/features/notes/notes.routes.ts`
+- `src/styles.scss` (M3 Theme)
+
+**Generated (OpenAPI):**
+- `src/app/api/` (NotesService, NoteDTO, etc.)
+
+=== Gesamtautomatisierung: 92%
+
+**Automatisch:** OpenAPI Client Generation, Material Theme Setup, Standard Services
+**Manuell:** Theme API Migration (M3), Custom Interceptor Logic, Layout Design
+
+=== Nächste Schritte: Phase 5
+
+Phase 5 wird die UI-Komponenten Migration umfassen:
+- Note List Component mit Material Table
+- Note Form Dialog mit Material Form Components
+- Note Detail Component
+- Integration mit generiertem NotesService
+- Vollständige CRUD-Funktionalität
+
