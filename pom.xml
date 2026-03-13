@@ -10,13 +10,12 @@
     <version>1.0-SNAPSHOT</version>
 
     <name>Notizblock Webanwendung</name>
-    <description>Quarkus Notizblock mit JSF und PrimeFaces</description>
+    <description>Quarkus Notizblock REST API mit Angular Frontend</description>
 
     <properties>
         <maven.compiler.release>17</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <quarkus.version>3.31.4</quarkus.version>
-        <primefaces-quarkus.version>4.15.13</primefaces-quarkus.version>
         <mapstruct.version>1.5.5.Final</mapstruct.version>
     </properties>
 
@@ -49,13 +48,6 @@
         <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-hibernate-validator</artifactId>
-        </dependency>
-
-        <!-- PrimeFaces for Quarkus -->
-        <dependency>
-            <groupId>io.quarkiverse.primefaces</groupId>
-            <artifactId>quarkus-primefaces</artifactId>
-            <version>${primefaces-quarkus.version}</version>
         </dependency>
 
         <!-- Quarkus REST (RESTEasy Reactive with Jackson) -->

@@ -1,191 +1,300 @@
 # Notizblock Webanwendung
 
-Eine vollständige Quarkus Webanwendung für die Verwaltung von Notizen mit JSF und PrimeFaces, inklusive Detailansicht
-und automatischer Änderungshistorie.
+Eine moderne Full-Stack-Webanwendung für die Verwaltung von Notizen mit **Quarkus Backend** und **Angular Frontend**.
+
+## Architektur
+
+Das Projekt folgt einer modernen **REST-API-basierten Architektur**:
+
+- **Backend**: Quarkus mit REST API
+- **Frontend**: Angular Single-Page-Application mit Angular Material
+- **Kommunikation**: REST API als Schnittstelle zwischen Frontend und Backend
 
 ## Tech-Stack
 
+### Backend (Quarkus)
+
 - **Quarkus 3.31** - Supersonic Subatomic Java Framework
-- **JSF (JavaServer Faces) via Apache MyFaces** - MVC Framework für die UI (wird von `quarkus-primefaces` unter der Haube mitgeliefert und ermöglicht den Einsatz von JSF in Quarkus)
-- **PrimeFaces (Quarkus Extension)** - Die `quarkus-primefaces` Extension ermöglicht darüber hinaus die Verwendung der PrimeFaces UI-Komponentenbibliothek mit Quarkus
-- **JPA (Jakarta Persistence API) / Hibernate ORM** - ORM für Datenbankzugriffe (via `quarkus-hibernate-orm`)
-- **CDI (Contexts and Dependency Injection)** - Dependency Injection (integriert in Quarkus)
-- **H2 Database** - In-Memory Datenbank (via `quarkus-jdbc-h2`)
+- **Quarkus REST (RESTEasy Reactive)** - REST API Endpoints
+- **JPA (Jakarta Persistence API) / Hibernate ORM** - ORM für Datenbankzugriffe
+- **H2 Database** - In-Memory Datenbank für Entwicklung
+- **MapStruct** - Entity-DTO Mapping
+- **Bean Validation** - Validierung
+- **OpenAPI / Swagger UI** - API Dokumentation
 - **Maven** - Build Management
+
+### Frontend (notizblock-angular)
+
+- **Angular 21** - Modern TypeScript Framework
+- **Angular Material** - UI Component Library
+- **RxJS** - Reactive Programming
+- **OpenAPI Generator** - Auto-generierter TypeScript API Client
+- **npm** - Package Management
+
+## Quick Start
+
+```bash
+# 1. Backend starten (Terminal 1)
+mvn quarkus:dev
+
+# 2. Frontend starten (Terminal 2)
+cd notizblock-angular
+npm install
+npm start
+
+# 3. Browser öffnen
+# Angular: http://localhost:4200/
+# Swagger: http://localhost:8080/notizblock/q/swagger-ui/
+```
 
 ## Projektstruktur
 
 ```
-notizblock/
-├── src/
-│   ├── main/
-│   │   ├── java/
-│   │   │   └── com/gepardec/notizblock/
-│   │   │       ├── entity/
-│   │   │       │   ├── Note.java              # JPA Entity
-│   │   │       │   ├── NoteHistory.java       # Historie-Entity
-│   │   │       │   └── ChangeType.java        # Enum (CREATED, UPDATED, DELETED)
-│   │   │       ├── repository/
-│   │   │       │   ├── NoteRepository.java    # Note CRUD + Auto-History
-│   │   │       │   └── NoteHistoryRepository.java  # Historie-Abfragen
-│   │   │       └── bean/
-│   │   │           ├── NoteBean.java          # JSF Backing Bean (Übersicht)
-│   │   │           └── NoteDetailBean.java    # JSF Backing Bean (Detail)
-│   │   └── resources/
-│   │       ├── META-INF/
-│   │       │   ├── web.xml                    # JSF Servlet Config
-│   │       │   └── resources/
-│   │       │       ├── resources/
-│   │       │       │   └── components/
-│   │       │       │       ├── layout/
-│   │       │       │       │   └── template.xhtml     # Facelets Template
-│   │       │       │       ├── noteTable.xhtml        # DataTable Komponente
-│   │       │       │       ├── noteFormDialog.xhtml   # Erstellen/Bearbeiten Dialog
-│   │       │       │       └── deleteConfirmDialog.xhtml  # Lösch-Bestätigung
-│   │       │       ├── index.xhtml            # Übersichtsseite
-│   │       │       └── detail.xhtml           # Detailseite mit Historie
-│   │       └── application.properties         # Quarkus Konfiguration
-└── pom.xml                                    # Maven Dependencies
+example-jakarta-ee-primefaces/
+├── src/                                       # Quarkus Backend
+│   └── main/
+│       ├── java/com/gepardec/notizblock/
+│       │   ├── entity/                        # JPA Entities
+│       │   │   ├── Note.java
+│       │   │   ├── NoteHistory.java
+│       │   │   └── ChangeType.java
+│       │   ├── dto/                           # Data Transfer Objects
+│       │   │   ├── NoteDTO.java
+│       │   │   └── NoteHistoryDTO.java
+│       │   ├── mapper/                        # MapStruct Mappers
+│       │   │   ├── NoteMapper.java
+│       │   │   └── NoteHistoryMapper.java
+│       │   ├── repository/                    # JPA Repositories
+│       │   │   ├── NoteRepository.java
+│       │   │   └── NoteHistoryRepository.java
+│       │   ├── resource/                      # REST API Endpoints
+│       │   │   └── NoteResource.java
+│       │   ├── filter/                        # HTTP Filters
+│       │   │   └── CorsFilter.java
+│       │   └── exception/                     # Exception Handling
+│       │       ├── NoteNotFoundException.java
+│       │       └── ...
+│       └── resources/
+│           └── application.properties         # Quarkus Konfiguration
+│
+├── notizblock-angular/                        # Angular Frontend
+│   ├── src/
+│   │   ├── app/
+│   │   │   ├── api/                           # Auto-generierter API Client
+│   │   │   ├── components/                    # Angular Components
+│   │   │   ├── services/                      # Services
+│   │   │   └── ...
+│   │   └── ...
+│   ├── package.json                           # npm Dependencies
+│   └── angular.json                           # Angular Configuration
+│
+├── openapi.json                               # OpenAPI Specification
+├── pom.xml                                    # Maven Backend Dependencies
+└── README.md                                  # Diese Datei
 ```
 
 ## Features
 
 ### 1. Notizen-Verwaltung (CRUD)
 
-#### Übersichtsseite (index.xhtml)
+**Übersichtsseite:**
 
-- **Alle Notizen anzeigen** in interaktiver PrimeFaces DataTable
-    - Spalten: Titel, Inhalt (gekürzt), Erstellungsdatum
-    - Pagination (5, 10, 20 Einträge pro Seite)
-    - Sortierung und Filterung nach Titel
+- Alle Notizen in einer übersichtlichen Tabelle anzeigen
+- Notizen erstellen, bearbeiten und löschen
+- Sortierung und Filterung nach verschiedenen Kriterien
+- Pagination für große Datensätze
+- Responsive Design für mobile Geräte
 
-- **Notiz erstellen**
-    - Button "Neue Notiz" öffnet Dialog
-    - Validierung für Titel und Inhalt
-    - AJAX-Update der Liste nach dem Speichern
+**Detailansicht:**
 
-- **Notiz bearbeiten**
-    - Stift-Icon öffnet Dialog mit vorausgefüllten Daten
-    - AJAX-Update nach dem Speichern
+- Vollständige Informationen zu einer Notiz
+- Titel, Inhalt, Erstellungs- und Änderungsdatum
+- Navigation zwischen Notizen
 
-- **Notiz löschen**
-    - Mülleimer-Icon zeigt Bestätigungsdialog
-    - AJAX-Update nach dem Löschen
+### 2. Automatische Änderungshistorie
 
-- **Detail anzeigen**
-    - Lupen-Icon navigiert zur Detailseite
-    - Übergabe der Notiz-ID als Query-Parameter
+**Backend Tracking:**
 
-### 2. Detailseite (detail.xhtml)
-
-Die Detailseite zeigt vollständige Informationen zu einer Notiz:
-
-- **Titel** - Vollständiger Titel
-- **Inhalt** - Kompletter Inhalt (ohne Kürzung)
-- **Erstellungsdatum** - Wann die Notiz erstellt wurde
-- **Letztes Änderungsdatum** - Zeitpunkt der letzten Bearbeitung
-- **Navigation** - "Zurück zur Liste" Button
-
-### 3. Änderungshistorie
-
-**Automatisches Tracking:**
-
-- Jede CRUD-Operation (Create, Update, Delete) wird automatisch in der `NoteHistory`-Tabelle protokolliert
+- Jede CRUD-Operation wird automatisch in der `NoteHistory`-Tabelle protokolliert
 - Implementiert als transparenter Service im `NoteRepository`
+- Änderungstypen: CREATED, UPDATED, DELETED
 
-**Timeline-Darstellung:**
+**Historie-Ansicht:**
 
-- Vertikale Timeline mit allen Änderungen (älteste zuerst)
-- Farbcodierte Icons:
-    - 🟢 Grün: Notiz erstellt
-    - 🟠 Orange: Notiz bearbeitet
-- Zeitstempel für jede Änderung
-- CSS-basierte Timeline (kein externes Plugin erforderlich)
+- Timeline aller Änderungen einer Notiz
+- Zeitstempel und Änderungstyp für jede Operation
+- Chronologische Darstellung (älteste zuerst)
 
-### 4. Komponentenbasierte Architektur
+### 3. REST API
 
-**Facelets Template** (`layout/template.xhtml`):
+**Vollständige API-Abdeckung:**
 
-- Wiederverwendbares Layout mit Header, Content-Bereich und Footer
-- Konsistentes Design über alle Seiten
-- Responsive Navigation
+- CRUD-Operationen für Notizen
+- Historie-Abfragen
+- OpenAPI/Swagger Dokumentation
+- JSON-basierte Kommunikation
+- Bean Validation für Request-Validierung
 
-**Wiederverwendbare UI-Komponenten**:
+### 4. Modern Stack
 
-- `noteTable.xhtml` - DataTable mit allen Action-Buttons
-- `noteFormDialog.xhtml` - Erstellen/Bearbeiten Dialog
-- `deleteConfirmDialog.xhtml` - Lösch-Bestätigung
+**Angular Frontend:**
 
-**Vorteile**:
+- Komponentenbasierte SPA-Architektur
+- Angular Material für konsistente UI
+- Reactive Programming mit RxJS
+- Auto-generierter TypeScript API Client
+- Hot-Reload Development
 
-- DRY-Prinzip (Don't Repeat Yourself)
-- Einfachere Wartung
-- Konsistente UI
-
-## Installation & Start
+## Installation & Deployment
 
 ### Voraussetzungen
 
-- **Java 17** oder höher
-- **Maven 3.8+**
+**Backend:**
 
-### Build
+- Java 17 oder höher
+- Maven 3.8+
 
-```bash
-# Projekt klonen oder entpacken
-cd notizblock
+**Frontend:**
 
-# Maven Build
-mvn clean package
-```
+- Node.js 18+ und npm 9+
+- Angular CLI (optional, wird über npx verwendet)
 
-### Entwicklungsmodus (Dev Mode)
+### Entwicklungsmodus
 
-Quarkus bietet einen Entwicklungsmodus mit Live-Reload:
+#### 1. Backend starten
 
 ```bash
+# Terminal 1: Backend im Dev-Modus
 mvn quarkus:dev
 ```
 
-Dies startet die Anwendung mit:
+Das Backend startet mit:
 
-- **Live-Reload** - Änderungen an Code und Ressourcen werden automatisch übernommen
-- **Dev UI** - Verfügbar unter `http://localhost:8080/notizblock/q/dev/`
-- **Detaillierte Fehlermeldungen**
+- **REST API**: `http://localhost:8080/notizblock/api/notes`
+- **Swagger UI**: `http://localhost:8080/notizblock/q/swagger-ui/`
+- **Dev UI**: `http://localhost:8080/notizblock/q/dev/`
+- **Live-Reload** für Java-Code
+
+#### 2. Frontend starten
+
+```bash
+# Terminal 2: Frontend starten
+cd notizblock-angular
+
+# Dependencies installieren (nur beim ersten Mal)
+npm install
+
+# Angular Dev-Server starten
+npm start
+```
+
+Das Angular Frontend läuft auf `http://localhost:4200/`
+
+**Wichtig**: Der Angular Dev-Server nutzt einen Proxy, um API-Aufrufe an das Backend weiterzuleiten (siehe
+`proxy.conf.json`).
 
 ### Produktion
 
+#### Backend Build
+
 ```bash
+# JAR Build
 mvn clean package
+
+# Starten
 java -jar target/quarkus-app/quarkus-run.jar
 ```
 
-## Anwendung aufrufen
+#### Frontend Build
 
-Nach erfolgreichem Start:
+```bash
+cd notizblock-angular
+
+# Production Build
+npm run build
+```
+
+Die Build-Artefakte befinden sich in `notizblock-angular/dist/`.
+
+### Zugriff auf die Anwendung
+
+**Frontend:**
 
 ```
-http://localhost:8080/notizblock/           # Übersichtsseite
-http://localhost:8080/notizblock/detail?id=1   # Detailseite (Beispiel mit ID 1)
+http://localhost:4200/                         # Angular App
 ```
+
+**Backend & API:**
+
+```
+http://localhost:8080/notizblock/api/notes              # REST Endpoints
+http://localhost:8080/notizblock/q/swagger-ui/         # Swagger UI
+http://localhost:8080/notizblock/q/dev/                # Quarkus Dev UI
+```
+
+## REST API
+
+Das Backend stellt eine vollständige REST API bereit.
+
+### API Endpoints
+
+| Methode  | Endpoint                             | Beschreibung              |
+|----------|--------------------------------------|---------------------------|
+| `GET`    | `/notizblock/api/notes`              | Alle Notizen abrufen      |
+| `GET`    | `/notizblock/api/notes/{id}`         | Einzelne Notiz abrufen    |
+| `POST`   | `/notizblock/api/notes`              | Neue Notiz erstellen      |
+| `PUT`    | `/notizblock/api/notes/{id}`         | Notiz aktualisieren       |
+| `DELETE` | `/notizblock/api/notes/{id}`         | Notiz löschen             |
+| `GET`    | `/notizblock/api/notes/{id}/history` | Änderungshistorie abrufen |
+
+### API Dokumentation
+
+- **OpenAPI Spec**: `openapi.json` im Projekt-Root
+- **Swagger UI**: `http://localhost:8080/notizblock/q/swagger-ui/`
+- Interaktive API-Dokumentation zum Testen aller Endpoints
+
+### Angular API Client
+
+Der Angular TypeScript API Client wird automatisch aus der OpenAPI-Spezifikation generiert:
+
+```bash
+cd notizblock-angular
+
+# API Client manuell neu generieren
+npm run generate-api
+```
+
+Der generierte Code befindet sich in `notizblock-angular/src/app/api/`.
+
+**Automatische Generierung**: Der API Client wird bei `npm install` automatisch generiert (siehe `postinstall` Script in
+`package.json`).
 
 ## Konfiguration
 
-Die gesamte Konfiguration erfolgt über `application.properties`:
+### Backend (application.properties)
 
 ```properties
 # Application Context Path
 quarkus.http.root-path=/notizblock
-
-# Datasource Configuration (H2 In-Memory)
+# Datasource (H2 In-Memory für Development)
 quarkus.datasource.db-kind=h2
-quarkus.datasource.jdbc.url=jdbc:h2:mem:notizblockdb
-
+quarkus.datasource.jdbc.url=jdbc:h2:mem:notizblockdb;DB_CLOSE_DELAY=-1
+quarkus.datasource.username=sa
+quarkus.datasource.password=
 # Hibernate ORM
 quarkus.hibernate-orm.schema-management.strategy=drop-and-create
+quarkus.hibernate-orm.log.sql=true
+# OpenAPI / Swagger UI
+quarkus.swagger-ui.always-include=true
 ```
 
-Die H2 In-Memory Datenbank wird automatisch konfiguriert – keine manuelle DataSource-Einrichtung nötig.
+**Hinweis**: Die H2 In-Memory Datenbank wird bei jedem Neustart neu erstellt. Für produktive Umgebungen sollte eine
+persistente Datenbank (PostgreSQL, MySQL) konfiguriert werden.
+
+### Frontend (Angular)
+
+- **API Base Path**: Konfiguriert in `notizblock-angular/proxy.conf.json`
+- **Proxy**: Leitet `/notizblock/api` an `http://localhost:8080` weiter
 
 ## Datenmodell
 
@@ -220,6 +329,39 @@ Jeder Wert hat:
 - `displayName` - Anzeigetext für die UI
 - `icon` - PrimeIcons CSS-Klasse
 
+## Entwicklungs-Workflow
+
+### Backend-Entwicklung
+
+1. **Backend im Dev-Modus starten**: `mvn quarkus:dev`
+2. Code ändern - Quarkus lädt automatisch neu
+3. API testen mit Swagger UI: `http://localhost:8080/notizblock/q/swagger-ui/`
+
+### Frontend-Entwicklung (Angular)
+
+1. **Backend starten**: `mvn quarkus:dev` (Terminal 1)
+2. **Frontend starten**: `cd notizblock-angular && npm start` (Terminal 2)
+3. Im Browser öffnen: `http://localhost:4200/`
+4. Änderungen in Angular-Code werden automatisch neu geladen
+
+### OpenAPI Schema aktualisieren
+
+Wenn Backend-API geändert wurde:
+
+```bash
+# 1. Backend starten
+mvn quarkus:dev
+
+# 2. OpenAPI Spec exportieren (aus Swagger UI oder Dev UI)
+# Oder: http://localhost:8080/notizblock/q/openapi
+
+# 3. openapi.json im Root aktualisieren
+
+# 4. Angular API Client neu generieren
+cd notizblock-angular
+npm run generate-api
+```
+
 ## Technische Details
 
 ### Architektur-Patterns
@@ -229,15 +371,23 @@ Jeder Wert hat:
 - Trennung von Business-Logik und Datenzugriff
 - `NoteRepository` und `NoteHistoryRepository` kapseln alle DB-Operationen
 
-**Backing Bean Pattern:**
+**DTO Pattern (Data Transfer Objects):**
 
-- `NoteBean` (@ViewScoped) für Übersichtsseite
-- `NoteDetailBean` (@ViewScoped) für Detailseite mit ViewParam-Support
+- Entkopplung von Entities und API
+- MapStruct für automatisches Entity-DTO Mapping
+- Vermeidet Lazy-Loading-Probleme bei der Serialisierung
+
+**REST Resource Pattern:**
+
+- JAX-RS Resources (`NoteResource`) für HTTP Endpoints
+- Bean Validation für Request-Validierung
+- Exception Mapper für einheitliche Fehlerbehandlung
 
 **Component-Based UI:**
 
-- Facelets Template für konsistentes Layout
-- `<ui:composition>` und `<ui:include>` für Komponenten-Wiederverwendung
+- Angular Komponentenbasierte SPA-Architektur
+- Wiederverwendbare Components und Services
+- Reactive Forms für Formularverwaltung
 
 ### Automatisches History-Tracking
 
@@ -256,153 +406,186 @@ public Note create(Note note) {
 
 Bei jeder Operation (`create`, `update`, `delete`) wird automatisch ein History-Eintrag erstellt.
 
-### ViewParameter-Verarbeitung
-
-Die Detailseite nutzt JSF ViewParams für die ID-Übergabe:
-
-```xml
-
-<f:metadata>
-    <f:viewParam name="id" value="#{noteDetailBean.id}" required="true"/>
-    <f:viewAction action="#{noteDetailBean.init}"/>
-</f:metadata>
-```
-
-**Wichtig**: Die `init()`-Methode wird über `<f:viewAction>` aufgerufen (nicht `@PostConstruct`), damit der
-ViewParameter bereits gebunden ist.
-
 ### Validierung
 
-- **Jakarta Bean Validation** Annotations in der Entity (@NotBlank, etc.)
-- **JSF Required-Validierung** in der UI (required="true")
-- **Client-Side Validation** durch PrimeFaces
-- **Server-Side Validation** vor dem Persistieren
+- **Jakarta Bean Validation** in DTOs und Entities (@NotBlank, @Size, etc.)
+- **Server-Side Validation** in REST Endpoints
+- **Client-Side Validation** in Angular Forms
+- Einheitliche Fehlerbehandlung mit Exception Mapper
 
 ### Transaktionsverwaltung
 
 - Transaktionen via `@Transactional` im Repository
 - Automatisches Rollback bei Exceptions
+- Optimistic Locking für Concurrency Control
 
-### CDI Scopes
+### Dependency Injection
 
-- `@ApplicationScoped` - Repositories (Singleton)
-- `@ViewScoped` - Backing Beans (Pro View-Instanz)
+- `@ApplicationScoped` - Repositories und Services (Singleton)
+- `@RequestScoped` - REST Resources (Pro Request)
 - Automatische Dependency Injection via `@Inject`
 
-## UI/UX Features
+## Deployment-Strategien
 
-### PrimeFaces Komponenten
+### Variante 1: Quarkus JAR
 
-- `p:dataTable` - Datentabelle mit Pagination, Sortierung, Filterung
-- `p:dialog` - Modale Dialoge für CRUD-Operationen
-- `p:growl` - Toast-Benachrichtigungen
-- `p:card` - Karten-Layout für Timeline
-- `p:button` - Navigation ohne AJAX
-- `p:commandButton` - AJAX-fähige Buttons
+```bash
+mvn clean package
+java -jar target/quarkus-app/quarkus-run.jar
+```
 
-### Responsive Design
+Backend läuft auf `http://localhost:8080/notizblock/api/`
 
-- Viewport Meta-Tag für mobile Geräte
-- PrimeFaces responsive grid system
-- CSS-basierte Timeline passt sich an
+### Variante 2: Docker Container (Backend + Angular)
 
-### AJAX-Updates
+**Backend als Container:**
 
-Alle Operationen nutzen AJAX für bessere UX:
+```bash
+# Quarkus Container Build
+mvn clean package -Dquarkus.container-image.build=true
 
-- `update=":mainForm:notesTable"` - Aktualisiert nur die Tabelle
-- `process="@this"` - Verarbeitet nur den Button
-- `oncomplete` - Callback nach erfolgreichem Update
+# Container starten
+docker run -p 8080:8080 quarkus/notizblock:1.0-SNAPSHOT
+```
+
+**Frontend als Static Files:**
+
+```bash
+# Angular Production Build
+cd notizblock-angular
+npm run build
+
+# Statische Dateien deployen (z.B. Nginx, Apache)
+# Die Dateien befinden sich in dist/notizblock-angular/browser/
+```
+
+### Variante 3: Quarkus Native Image
+
+Für minimalen Speicher-Footprint und schnellsten Start:
+
+```bash
+mvn clean package -Pnative
+./target/notizblock-runner
+```
+
+**Hinweis**: Benötigt GraalVM Native Image.
+
+### Variante 4: Angular in Quarkus integrieren
+
+Die Angular Build-Artefakte können in `src/main/resources/META-INF/resources/` kopiert werden, um eine
+Single-JAR-Deployment zu ermöglichen.
 
 ## Troubleshooting
 
-### Hibernate DDL-Fehler
+### Backend-Probleme
 
-Die `application.properties` nutzt `drop-and-create` für Development. Die Datenbank wird bei jedem Neustart neu erstellt.
+**Hibernate DDL-Fehler:**
 
-### "Keine Notiz-ID angegeben" beim Öffnen der Detailseite
+- Die H2-Datenbank wird bei jedem Start neu erstellt (`drop-and-create`)
+- Für Produktion: Persistente DB verwenden und `schema-management.strategy` ändern
 
-- Stelle sicher, dass die URL den `id`-Parameter enthält: `detail.xhtml?id=1`
-- Prüfe, dass `<f:viewAction>` in der detail.xhtml vorhanden ist
-- Die `init()`-Methode darf NICHT `@PostConstruct` haben
+**CORS-Fehler:**
 
-### Timeline wird nicht angezeigt
+- CORS wird durch `CorsFilter.java` konfiguriert
+- Prüfen: Allowed origins in `src/main/java/com/gepardec/notizblock/filter/CorsFilter.java`
 
-- CSS-Styles müssen im `<ui:define name="head">` Block sein
-- Browser-Cache leeren nach CSS-Änderungen
+**Port bereits belegt:**
+
+```bash
+# Port ändern in application.properties
+quarkus.http.port=8081
+```
+
+### Frontend-Probleme (Angular)
+
+**API Client nicht gefunden:**
+
+```bash
+cd notizblock-angular
+npm run generate-api
+```
+
+**Backend nicht erreichbar:**
+
+- Prüfen: Backend läuft auf `http://localhost:8080`
+- Prüfen: `proxy.conf.json` ist korrekt konfiguriert
+
+**Angular Proxy Fehler:**
+
+```json
+// notizblock-angular/proxy.conf.json prüfen
+{
+  "/notizblock": {
+    "target": "http://localhost:8080",
+    "secure": false
+  }
+}
+```
 
 ## Best Practices
 
+### Backend
+
 1. **Transaktionen**: Alle DB-Operationen in `@Transactional`-Methoden
-2. **Error Handling**: Try-Catch in Bean-Methoden mit FacesMessage
-3. **Lazy Loading**: `@ManyToOne(fetch = FetchType.LAZY)` für bessere Performance
-4. **Validation**: Validierung auf Entity- UND UI-Ebene
-5. **Komponenten**: Wiederverwendbare XHTML-Komponenten für DRY
-6. **Separation of Concerns**: Repository → Service-Logik, Bean → UI-Logik
+2. **DTOs verwenden**: Niemals JPA Entities direkt in REST API zurückgeben
+3. **Validation**: Bean Validation in DTOs UND Entities
+4. **Error Handling**: Exception Mapper für einheitliche Fehlerantworten
+5. **Separation of Concerns**: Repository → Data Access, Resource → HTTP Layer
+
+### Frontend
+
+1. **Services für API-Zugriff**: Keine direkten HTTP-Calls in Components
+2. **RxJS Subscriptions**: Immer unsubscribe oder async pipe verwenden
+3. **Type Safety**: TypeScript Types nutzen, `any` vermeiden
+4. **Component Design**: Kleine, wiederverwendbare Components
+5. **Error Handling**: Globale Error Interceptors
+6. **Lazy Loading**: Lazy Loading für Module und Routes
+7. **State Management**: Reactive State Management mit Services oder NgRx
 
 ## Erweiterungsmöglichkeiten
 
-- **Benutzer-Authentifizierung**: Login/Logout mit Quarkus Security
-- **Tags/Kategorien**: Notizen kategorisieren und filtern
-- **Volltextsuche**: Suche im Inhalt aller Notizen
-- **Export/Import**: JSON oder XML Export
-- **Anhänge**: Dateien an Notizen anhängen
-- **Rich-Text Editor**: CKEditor oder TinyMCE Integration
-- **REST API**: Quarkus RESTEasy Endpoints für externe Clients
-- **Persistente DB**: PostgreSQL oder MySQL statt H2 (via `quarkus-jdbc-postgresql` etc.)
+### Backend
 
-## Migration von Jakarta EE (JSF) nach Quarkus – TODO-Checkliste
+- **Benutzer-Authentifizierung**: Quarkus OIDC oder JWT mit Keycloak
+- **Datenbank Migration**: H2 → PostgreSQL/MySQL/MariaDB
+- **Hibernate Search**: Volltextsuche mit Lucene/Elasticsearch
+- **Caching**: Redis Cache mit Quarkus Cache Extension
+- **Messaging**: Kafka/AMQP für Event-Driven Architecture
+- **Observability**: Micrometer Metrics, OpenTelemetry Tracing
 
-Die folgende Checkliste gibt einen schnellen Überblick über die notwendigen Schritte, wenn man ein bestehendes JSF-Frontend aus einer Jakarta EE Anwendung (z.B. WildFly) nach Quarkus migrieren möchte.
+### Frontend (Angular)
 
-### Die Schlüsselrolle von Apache MyFaces
+- **PWA Support**: Service Workers für Offline-Funktionalität
+- **State Management**: NgRx oder Akita für komplexe State-Logik
+- **Internationalisierung**: i18n für mehrsprachige UI
+- **Rich-Text Editor**: Quill oder TinyMCE Integration
+- **File Upload**: Drag & Drop für Anhänge
+- **Real-Time Updates**: WebSocket oder Server-Sent Events
 
-Das „Arbeitstier" hinter JSF in Quarkus ist die **Quarkus Extension von Apache MyFaces** (`quarkus-myfaces`). Sie stellt die Implementierung des JSF-Standards (Jakarta Faces) für Quarkus bereit und macht den Einsatz von JSF in Quarkus überhaupt erst möglich.
+### Features
 
-Im konkreten Fall dieser Anwendung wird **`quarkus-primefaces`** verwendet – diese Extension liefert Apache MyFaces bereits als transitive Abhängigkeit mit und stellt darüber hinaus die PrimeFaces UI-Komponentenbibliothek in Quarkus-kompatibler Form bereit. Man benötigt also nur eine einzige Dependency:
+- **Tags/Kategorien**: Notizen organisieren und filtern
+- **Kollaboration**: Notizen teilen und gemeinsam bearbeiten
+- **Export/Import**: JSON, PDF, Markdown Export
+- **Markdown Support**: Markdown-Editor mit Preview
+- **Attachments**: Datei-Uploads mit S3-Integration
+- **Mobile App**: Ionic oder React Native basierend auf derselben API
 
-```xml
-<dependency>
-    <groupId>io.quarkiverse.primefaces</groupId>
-    <artifactId>quarkus-primefaces</artifactId>
-</dependency>
-```
+---
 
-### TODO-Liste
+## Lizenz & Projekt-Info
 
-- [ ] **Dependencies austauschen**
-  - `jakarta.jakartaee-api` (provided) entfernen
-  - `primefaces` (mit `jakarta` Classifier) entfernen
-  - Stattdessen `quarkus-primefaces` hinzufügen (bringt MyFaces + PrimeFaces mit)
-  - Quarkus-spezifische Dependencies hinzufügen: `quarkus-hibernate-orm`, `quarkus-jdbc-h2`, `quarkus-hibernate-validator`
-  - Quarkus BOM im `<dependencyManagement>` einbinden
+Dieses Projekt ist ein **Beispielprojekt für Lern- und Demonstrationszwecke**.
 
-- [ ] **Build-Konfiguration anpassen**
-  - `<packaging>war</packaging>` entfernen (Quarkus baut standardmäßig ein JAR)
-  - `maven-war-plugin` entfernen
-  - `wildfly-maven-plugin` durch `quarkus-maven-plugin` ersetzen
+### Projektziel
 
-- [ ] **XHTML-Dateien verschieben**
-  - Von `src/main/webapp/` nach `src/main/resources/META-INF/resources/`
-  - Facelets-Seiten (`index.xhtml`, `detail.xhtml`, etc.) sowie Composite Components und Templates
+Demonstration einer modernen Full-Stack-Architektur mit:
 
-- [ ] **web.xml verschieben**
-  - Von `src/main/webapp/WEB-INF/web.xml` nach `src/main/resources/META-INF/web.xml`
+- Quarkus Backend mit REST API
+- Angular Frontend als moderne SPA
+- OpenAPI-basierte API-Entwicklung mit auto-generiertem TypeScript Client
+- Best Practices für Enterprise Java Development
 
-- [ ] **Konfigurationsdateien ersetzen**
-  - `persistence.xml` entfernen → Konfiguration über `application.properties` (`quarkus.datasource.*`, `quarkus.hibernate-orm.*`)
-  - `beans.xml` entfernen → CDI ist in Quarkus standardmäßig aktiv
-  - WildFly-spezifische DataSource-Dateien (`*-ds.xml`) entfernen → Konfiguration über `application.properties`
+### Autor
 
-- [ ] **EntityManager-Injection anpassen**
-  - `@PersistenceContext(unitName = "...")` durch `@Inject` ersetzen
-  - `private` Sichtbarkeit auf package-private ändern (Quarkus CDI erfordert dies)
-
-- [ ] **Anwendung testen**
-  - `mvn quarkus:dev` starten und alle JSF-Seiten durchklicken
-  - AJAX-Updates, Dialoge, Navigation und Validierung prüfen
-  - Sicherstellen, dass PrimeFaces-Komponenten korrekt gerendert werden
-
-## Lizenz
-
-Dieses Projekt ist ein Beispielprojekt für Lernzwecke.
+Gepardec - Enterprise Java Experts
