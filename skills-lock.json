@@ -1,0 +1,95 @@
+{
+  "version": 1,
+  "skills": {
+    "api-contract-review": {
+      "source": "decebals/claude-code-java",
+      "sourceType": "github",
+      "computedHash": "45bef8c7476e9c4fb6e0632cc4fd11abbcbf190e5423125d34f190b8a509e87a"
+    },
+    "architecture-review": {
+      "source": "decebals/claude-code-java",
+      "sourceType": "github",
+      "computedHash": "333f6a55496e71fddf33c4987ccb79593409dc34b2b4c72f0eb6e6d394427b2b"
+    },
+    "changelog-generator": {
+      "source": "decebals/claude-code-java",
+      "sourceType": "github",
+      "computedHash": "ae7f884ec04f19c3f47ea5f51a976ed3062aadccf361a50a87106e8c038bc46f"
+    },
+    "clean-code": {
+      "source": "decebals/claude-code-java",
+      "sourceType": "github",
+      "computedHash": "f7c92967881750fd50e618f608a816c02981a33fa4ce59439bad71ddf15b7674"
+    },
+    "concurrency-review": {
+      "source": "decebals/claude-code-java",
+      "sourceType": "github",
+      "computedHash": "c9a5ae57fc014f27d5f971453dc1469a62374e22d536639b85cf7e1efa41f261"
+    },
+    "design-patterns": {
+      "source": "decebals/claude-code-java",
+      "sourceType": "github",
+      "computedHash": "93808e5018090b612018ebf3feb79739112f68586ab36e51374cf718fbb71e40"
+    },
+    "git-commit": {
+      "source": "decebals/claude-code-java",
+      "sourceType": "github",
+      "computedHash": "95736e35300db9975d2b88f3539132b73da3153c1465e387d56d17c8cd19f7a4"
+    },
+    "issue-triage": {
+      "source": "decebals/claude-code-java",
+      "sourceType": "github",
+      "computedHash": "9878ce751f0aaad1574e2344ccb6fad8f7b899fb148518fca300f897c4d9d9e1"
+    },
+    "java-code-review": {
+      "source": "decebals/claude-code-java",
+      "sourceType": "github",
+      "computedHash": "5ad43f17a91a29205b52c52f86812e4901b4d3e388d3e8d10b8618299ce9e020"
+    },
+    "java-migration": {
+      "source": "decebals/claude-code-java",
+      "sourceType": "github",
+      "computedHash": "0fb5849e98cf49bdf8e2d6d01bd6eb4f762e8c1826470467f9d3b3ac488dd8e7"
+    },
+    "jpa-patterns": {
+      "source": "decebals/claude-code-java",
+      "sourceType": "github",
+      "computedHash": "0e65dc6f8c899915ebf24dd6735f1ec93c055610039fb445eeec397b86f5a10d"
+    },
+    "logging-patterns": {
+      "source": "decebals/claude-code-java",
+      "sourceType": "github",
+      "computedHash": "df5c718b54e3324fdf5f8eae9675a5ac57c6ef0f4b26896513507ec17a5c0f82"
+    },
+    "maven-dependency-audit": {
+      "source": "decebals/claude-code-java",
+      "sourceType": "github",
+      "computedHash": "49662b94e68f3a19dc04b587bd47e44475d88109f1aacf01d4c853b020b64b3d"
+    },
+    "performance-smell-detection": {
+      "source": "decebals/claude-code-java",
+      "sourceType": "github",
+      "computedHash": "f4371a8fc421d7b5a278bc460d07963d539711a4242bc9100bc55a9114ab98ad"
+    },
+    "security-audit": {
+      "source": "decebals/claude-code-java",
+      "sourceType": "github",
+      "computedHash": "c4a831becec13cf490912b3cc5df6d74e98d488196f7e14084e4b64ddb9b7ad5"
+    },
+    "solid-principles": {
+      "source": "decebals/claude-code-java",
+      "sourceType": "github",
+      "computedHash": "6252b80144080f16b3146451578b760ebf6ef4b0a670d829d6345e3c8482b206"
+    },
+    "spring-boot-patterns": {
+      "source": "decebals/claude-code-java",
+      "sourceType": "github",
+      "computedHash": "6e9aee3a4a418f9f1d0b865a398c84a992d43dbcfb251a4ed1ef85b729c5bb5a"
+    },
+    "test-quality": {
+      "source": "decebals/claude-code-java",
+      "sourceType": "github",
+      "computedHash": "0c3760928785e68c79364288854ebc2d4ccba4fa83be10151e46ea4ab8b1708a"
+    }
+  }
+}
