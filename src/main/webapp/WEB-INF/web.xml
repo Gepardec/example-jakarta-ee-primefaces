@@ -8,6 +8,8 @@
     <display-name>Notizblock Webanwendung</display-name>
     <description>Jakarta EE Notizblock mit JSF und PrimeFaces</description>
 
+    <distributable/>
+
     <!-- JSF Servlet Configuration -->
     <servlet>
         <servlet-name>Faces Servlet</servlet-name>

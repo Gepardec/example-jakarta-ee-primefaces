@@ -23,7 +23,10 @@
             </div>
             <div>
                 <p:button outcome="/index" value="Zur Übersicht" icon="pi pi-home"
-                          styleClass="ui-button-secondary" rendered="#{view.viewId != '/index.xhtml'}"/>
+                          styleClass="ui-button-secondary" rendered="#{view.viewId != '/index.xhtml'}"
+                          style="margin-right: 5px;"/>
+                <p:button outcome="/session-demo" value="Session Demo" icon="pi pi-database"
+                          styleClass="ui-button-info" rendered="#{view.viewId != '/session-demo.xhtml'}"/>
             </div>
         </div>
     </p:panel>

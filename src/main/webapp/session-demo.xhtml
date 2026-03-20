@@ -1,0 +1,78 @@
+<ui:composition xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:h="jakarta.faces.html"
+                xmlns:p="http://primefaces.org/ui"
+                xmlns:ui="jakarta.faces.facelets"
+                xmlns:f="jakarta.faces.core"
+                template="/resources/components/layout/template.xhtml">
+
+    <ui:define name="title">Session-Persistenz Demo</ui:define>
+
+    <ui:define name="pageTitle">Session-Persistenz Demo</ui:define>
+
+    <ui:define name="content">
+
+        <!-- Seiten-Load Trigger: zählt Besuche und aktualisiert Aktivitätszeit -->
+        <f:metadata>
+            <f:event type="preRenderView" listener="#{userSessionBean.onPageLoad}"/>
+        </f:metadata>
+
+        <h:form id="sessionForm">
+
+            <!-- Hinweis bei erkannter Reaktivierung -->
+            <p:messages id="msgs" showDetail="true"/>
+
+            <p:panel id="statusPanel" header="Session-Status" style="margin-bottom: 15px;">
+                <p:panelGrid columns="2" style="width: 100%;"
+                             contentStyleClass="ui-panelgrid-cell">
+
+                    <h:outputText value="Session erstellt am:"/>
+                    <h:outputText value="#{userSessionBean.sessionCreatedAtFormatted}"
+                                  style="font-weight: bold;"/>
+
+                    <h:outputText value="Letzte Aktivität:"/>
+                    <h:outputText value="#{userSessionBean.lastActivityAtFormatted}"
+                                  style="font-weight: bold;"/>
+
+                    <h:outputText value="Seitenbesuche (diese Session):"/>
+                    <h:outputText value="#{userSessionBean.visitCount}"
+                                  style="font-weight: bold; font-size: 1.3em; color: #667eea;"/>
+
+                    <h:outputText value="Gespeicherter Name:"/>
+                    <h:outputText value="#{empty userSessionBean.username ? '(noch nicht gesetzt)' : userSessionBean.username}"
+                                  style="font-weight: bold;"/>
+
+                    <h:outputText value="Nach Restart reaktiviert:"/>
+                    <h:outputText value="#{userSessionBean.reactivatedAfterRestart ? 'JA - Session wurde passiviert und reaktiviert!' : 'Nein (frische Session oder nur Reload)'}"
+                                  style="font-weight: bold; color: #{userSessionBean.reactivatedAfterRestart ? 'green' : 'gray'};"/>
+
+                </p:panelGrid>
+            </p:panel>
+
+            <p:panel header="Name speichern (überlebt Restart)" style="margin-bottom: 15px;">
+                <p:outputLabel for="usernameInput" value="Dein Name:"/>
+                <p:inputText id="usernameInput"
+                             value="#{userSessionBean.username}"
+                             placeholder="Namen eingeben..."
+                             style="margin: 0 10px;"/>
+                <p:commandButton value="Speichern"
+                                 icon="pi pi-save"
+                                 update="sessionForm:statusPanel sessionForm:msgs"
+                                 styleClass="ui-button-success"/>
+            </p:panel>
+
+            <p:panel header="Anleitung">
+                <ol style="line-height: 2em;">
+                    <li>Trage deinen Namen oben ein und klicke <strong>Speichern</strong>.</li>
+                    <li>Notiere dir die <strong>Session erstellt am</strong>-Zeit und den <strong>Besuchszähler</strong>.</li>
+                    <li>Starte WildFly <strong>graceful</strong> neu (siehe Anleitung im Repo).</li>
+                    <li>Lade diese Seite neu — Name, Erstellzeit und Zähler sind noch da!</li>
+                    <li>Der Zähler steigt weiter, die Erstellzeit bleibt dieselbe → Session wurde passiviert und reaktiviert.</li>
+                </ol>
+                <p:separator/>
+                <p:button outcome="/index" value="Zur Notizübersicht" icon="pi pi-home"/>
+            </p:panel>
+
+        </h:form>
+    </ui:define>
+
+</ui:composition>
